@@ -4,10 +4,13 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var moment = require('moment');
+var fs = require('fs');
+var csv = require('csv-stringify');
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
-
+var mysql      = require('mysql');
 var app = express();
 
 // view engine setup
@@ -25,11 +28,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', routes);
 app.use('/users', users);
 
+//Post function on front page
 app.post('/', function (req, res) {
   res.send('Got a POST request');
-  console.log(req.body.user)
-  console.log(req.body.pass)
-  var mysql      = require('mysql');
+  
+  var utcdatetime = moment.utc().format('YYYY-MM-DD HH:mm:ss');
+  var symbol = req.body.symbol;
+  var expiry = req.body.expiry;
+  var lots = req.body.lots;
+  var price = req.body.price;
+  var type = req.body.transType;
+  var trader = req.body.trader;
+
   var connection = mysql.createConnection({
     host     : '104.131.22.150',
     user     : 'rrp',
@@ -39,13 +49,73 @@ app.post('/', function (req, res) {
 
   connection.connect();
 
-  connection.query('INSERT INTO test VALUES ("' + req.body.user + '","' + req.body.pass+ '");', function(err, rows, fields) {
+  connection.query('INSERT INTO Trades VALUES ("' + symbol + '","' + expiry + '","' + lots + '","' +
+    price + '","' + type + '","' + trader + '","' + utcdatetime + '");', function(err, rows, fields) {
     if (err) throw err;
     console.log('done');
   });
 
   connection.end();
 });
+
+//Write Trades to CSV File
+function tradesToCSV(){
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+ 
+  connection.connect();
+   
+  var queryString = 'SELECT * FROM Trades';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+    csv(rows, function(err, output){
+      fs.writeFile("/trades.csv", output, function(err) {
+        if (err) throw err;
+        console.log('It\'s saved!');
+      }); 
+    });
+  });
+   
+  connection.end();
+}
+
+tradesToCSV();
+
+//Write Aggregate Position to CSV File
+function aggregatePositionToCSV(){
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+ 
+  connection.connect();
+   
+  var queryString = 'SELECT symbol, sum(lots) FROM (SELECT symbol, IF(type="Buy", -1 * lots, lots) as lots FROM Trades) as typedTrades GROUP BY symbol;';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+    csv(rows, function(err, output){
+      fs.writeFile("/aggregatePosition.csv", output, function(err) {
+        if (err) throw err;
+      }); 
+    });
+  });
+   
+  connection.end();
+}
+
+aggregatePositionToCSV();
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

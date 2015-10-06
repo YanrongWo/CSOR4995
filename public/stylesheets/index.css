@@ -1,0 +1,26 @@
+#makeTradeForm{
+	width: 20vw;
+	margin: 10vw;
+	margin-top: 2vw;
+}
+
+.form-control{
+	width: inherit;
+}
+
+h1{
+	font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+p{
+	font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+#title{
+	margin-top: 4vw;
+	margin-left: 10vw;
+}
+
+#underTitle{
+	margin-left: 10vw;
+}

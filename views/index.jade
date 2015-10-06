@@ -1,27 +1,39 @@
 extends layout
 
 block content
-	h1= title
-	p Welcome to #{title}
-	form(name="login", action="/", method="post")
-		p Symbol
-		input(type="text", name="symbol")
-		br
-		p Expiry
-		input(type="text", name="expiry")
-		br
-		p Lots
-		input(type="number", name="lots")
-		br
-		p Price
-		input(type="number", name="price")
-		br
-		input(type="radio", name="transType", value="Sell")
-		p Sell
-		input(type="radio", name="transType", value="Buy")
-		p Buy
-		br
-		p Trader 
-		input(type="text", name="trader")
-		br
-		input(type="submit", value="submit")
+	h1#title Welcome to #{title}
+	p#underTitle Make a trade by entering your information below
+	form(name="makeTrade", action="/", method="post", id="makeTradeForm")
+		div(class="form-group")
+			label Symbol
+			input(type="text", name="symbol", class="form-control", maxlength="3", size="3em")
+		div(class="form-group")
+			label Expiry
+			input(type="text", name="expiry", class="form-control")
+		div(class="form-group")
+			label Lots
+			input(type="number", name="lots", class="form-control")
+		div(class="form-group")
+			label Price
+			input(type="text", name="price", class="form-control")
+		div(class="form-group")
+			label(class="checkbox-inline")
+				input(type="radio", name="transType", value="Sell")
+				| Sell
+			label(class="checkbox-inline")
+				input(type="radio", name="transType", value="Buy")
+				| Buy
+		div(class="form-group")
+			label Trader 
+			input(type="text", name="trader", class="form-control")
+		div(class="form-group")
+			input(type="submit", value="Submit", class="btn btn-default", style="float:right; margin-top:2vw")
+	script.
+		function sendAlert(msg){
+			if (msg)
+			{
+				alert(msg);
+			}
+		}
+		sendAlert("#{alertScript}");
+

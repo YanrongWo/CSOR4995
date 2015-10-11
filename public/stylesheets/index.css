@@ -1,8 +1,29 @@
 #makeTradeForm{
+	float: left;
 	width: 20vw;
 	margin: 10vw;
-	margin-top: 2vw;
+	margin-top: 5vw;
+	margin-bottom:5vw;
 }
+
+#sendCSVTradesForm{
+	float: right;
+	overflow: auto;
+	width: 20vw;
+	margin: 10vw;
+	margin-top: 5px;
+	margin-bottom: 5px;
+}
+
+#sendCSVAggregateForm{
+	float: right;
+	overflow: auto;
+	width: 20vw;
+	margin: 10vw;
+	margin-top: 5px;
+	margin-bottom:5px;
+}
+
 
 .form-control{
 	width: inherit;

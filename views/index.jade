@@ -1,9 +1,12 @@
 extends layout
 
 block content
+
 	h1#title Welcome to #{title}
 	p#underTitle Make a trade by entering your information below
+
 	form(name="makeTrade", action="/", method="post", id="makeTradeForm")
+
 		div(class="form-group")
 			label Symbol
 			input(type="text", name="symbol", class="form-control", maxlength="3", size="3em")
@@ -28,6 +31,16 @@ block content
 			input(type="text", name="trader", class="form-control")
 		div(class="form-group")
 			input(type="submit", value="Submit", class="btn btn-default", style="float:right; margin-top:2vw")
+
+	form(name="sendCSVTrades", action="/CSVTrades", method="post", id="sendCSVTradesForm")
+		div(class="form-group")
+			input(type="submit", value="Get CSV Trades", class="btn btn-default", style="float:left; margin-top:3vw")
+
+	form(name="sendCSVAggregate", action="/CSVAggregate", method="post", id="sendCSVAggregateForm")
+		div(class="form-group")
+			input(type="submit", value="Get CSV Aggregate", class="btn btn-default", style="float:left; margin-top:2vw")
+
+
 	script.
 		function sendAlert(msg){
 			if (msg)

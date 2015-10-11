@@ -1,16 +1,12 @@
-/*
-  TODO: 
-    Need to keep values in forms if error
-    Break apart the post function
-*/
-
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var mysql = require('mysql');
 
+var loadIndex = require('./routes/loadIndex');
 var routes = require('./routes/index');
 var users = require('./routes/users');
 
@@ -30,8 +26,49 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', routes);
 app.use('/users', users);
 
+
+//Redirect to home page if not post reuqest
+app.get('/newUser', function(req, res){
+  res.redirect('/');
+});
+
+//Adds a new user to Trader table
+app.post('/newUser', function(req, res){
+
+  var first = req.body.first;
+  var last = req.body.last;
+
+  if (!first || !last)
+  {
+      loadIndex.loadIndexWithMessage(res, "Must provide both first and last name.")
+  }
+
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+ 
+  connection.connect();
+
+  var queryString = 'INSERT INTO Trader VALUES (NULL,"' + first + '", "' + last + '");';
+
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+    queryString = "SELECT LAST_INSERT_ID();"
+    connection.query(queryString, function(err, rows, fields) {
+      if (err) throw err;
+      connection.end();
+      loadIndex.loadIndexWithMessage(res, 'Success! Your userID is ' + rows[0]['LAST_INSERT_ID()'] + ".");
+    });
+  });
+});
+
 //Write Trades to CSV File
-function tradesToCSV(){
+app.get('/CSVTrades', function (req, res) {
   var connection = mysql.createConnection(
     {
       host     : '104.131.22.150',
@@ -47,18 +84,30 @@ function tradesToCSV(){
    
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    csv(rows, function(err, output){
-      fs.writeFile("/trades.csv", output, function(err) {
-        if (err) throw err;
-      }); 
-    });
+
+    res.setHeader('Content-disposition', 'attachment; filename=trades.csv');
+    res.setHeader('Content-type', 'text/csv');
+
+    var toSend = "";
+    for (field in fields){
+      field = fields[field];
+      toSend += field.name + ",";
+    }
+    toSend = toSend.substring(0, toSend.length - 1) + "\n";
+    for (row in rows){
+        row = rows[row];
+        toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
+                  + row.expiry_year + "," + row.lots + "," + row.price + ","
+                  + row.type + "," + row.traderID + "," + row.transactionTime + "\n";
+    }
+    res.send(toSend);
+
+    connection.end();
   });
-   
-  connection.end();
-}
+});
 
 //Write Aggregate Position to CSV File
-function aggregatePositionToCSV(){
+app.get('/CSVAggregate', function (req, res) {
   var connection = mysql.createConnection(
     {
       host     : '104.131.22.150',
@@ -70,19 +119,33 @@ function aggregatePositionToCSV(){
  
   connection.connect();
    
-  var queryString = 'SELECT symbol, sum(lots) FROM (SELECT symbol, IF(type="Buy", -1 * lots, lots) as lots FROM Trades) as typedTrades GROUP BY symbol;';
+  var queryString = "Select symbol, expiry_month, expiry_year, sum(lots) as lots FROM"  +
+    ' ((SELECT symbol, IF(type="Buy", sum(lots), -1 * sum(lots)) as lots, expiry_year, ' +
+    "expiry_month, type FROM Trades GROUP BY symbol, expiry_year, expiry_month, type) " +
+    "as summedTrades) GROUP BY symbol, expiry_year, expiry_month;";
    
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    csv(rows, function(err, output){
-      fs.writeFile("/aggregatePosition.csv", output, function(err) {
-        if (err) throw err;
-      }); 
-    });
+
+    res.setHeader('Content-disposition', 'attachment; filename=aggregate.csv');
+    res.setHeader('Content-type', 'text/csv');
+
+    var toSend = "";
+    for (field in fields){
+      field = fields[field];
+      toSend += field.name + ",";
+    }
+    toSend = toSend.substring(0, toSend.length - 1) + "\n";
+    for (row in rows){
+      row = rows[row];
+      toSend += row.symbol + "," + row.expiry_month + "," + row.expiry_year + "," 
+                + row.lots + "\n"; 
+    }
+    res.send(toSend);
+
+    connection.end();
   });
-   
-  connection.end();
-}
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

@@ -5,12 +5,14 @@ var loadIndex = require('./loadIndex');
 
 var router = express.Router();
 
-/* GET home page. */
+//@Summary: Load the home page with no alert message
+//@Triggered: GET request sent to domain/
 router.get('/', function(req, res, next) {
     loadIndex.loadIndexWithMessage(res, '');
 });
 
-//Post function on front page
+//@Summary: Inserts value from form on home page into database
+//@Triggered: POST request sent from domain/
 router.post('/', function (req, res) {
   //Values from field and date recieved
   var utcdatetime = moment.utc().format('YYYY-MM-DD HH:mm:ss');

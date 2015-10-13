@@ -23,22 +23,24 @@ app.use('/', routes);
 app.use('/users', users);
 
 
-//Redirect to home page if not post reuqest
+//@Summary: Redirect to home page if not post request
+//@Triggered: GET request sent to domain/newUser
 app.get('/newUser', function(req, res){
   res.redirect('/');
 });
 
-//Adds a new user to Trader table
+//@Summary: Adds a new user to Trader table
+//@Triggered: POST request sent to domain/newUser
 app.post('/newUser', function(req, res){
 
   var first = req.body.first;
   var last = req.body.last;
-
+  // Make sure all values filled in
   if (!first || !last)
   {
       loadIndex.loadIndexWithMessage(res, "Must provide both first and last name.")
   }
-
+  //Connect and insert value into database
   var connection = mysql.createConnection(
     {
       host     : '104.131.22.150',
@@ -54,6 +56,7 @@ app.post('/newUser', function(req, res){
 
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
+    //Get ID for this new user and sent it as an alert
     queryString = "SELECT LAST_INSERT_ID();"
     connection.query(queryString, function(err, rows, fields) {
       if (err) throw err;
@@ -63,7 +66,8 @@ app.post('/newUser', function(req, res){
   });
 });
 
-//Write Trades to CSV File
+//@Summary: Write Trades to CSV File
+//@Triggered: GET request sent to domain/CSVTrades
 app.get('/CSVTrades', function (req, res) {
   var connection = mysql.createConnection(
     {
@@ -102,7 +106,8 @@ app.get('/CSVTrades', function (req, res) {
   });
 });
 
-//Write Aggregate Position to CSV File
+//@Summary: Write Aggregate Position to CSV File
+//@Triggered: GET request sent to domain/CSVAggregate
 app.get('/CSVAggregate', function (req, res) {
   var connection = mysql.createConnection(
     {

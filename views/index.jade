@@ -7,9 +7,42 @@ block content
 
 		form(name="makeTrade", action="/", method="post", id="makeTradeForm")
 
-			div(class="form-group")
+			div(class="dropdown")
 				label Symbol
-				input(type="text", name="symbol", class="form-control", maxlength="3", size="3em")
+				select(name="symbol", id="symbolDropdown", ss="form-control") 
+					option(value=LN) LN 
+					option(value=NN) NN 
+					option(value=NG) NP 
+					option(value=HH) HH 
+					option(value=ON) ON 
+					option(value=HP) HP 
+					option(value=PD) PD 
+					option(value=HB) HB 
+					option(value=TC) TC 
+					option(value=PH) PH 
+					option(value=NR) NR 
+					option(value=TR) TR 
+					option(value=NL) NL 
+					option(value="5Z") 5Z 
+					option(value=GL) GL 
+					option(value=PG) PG 
+					option(value=IN) IN 
+					option(value=NH) NH 
+					option(value="9F") 9F 
+					option(value=NW) NW 
+					option(value=G4) G4 
+					option(value=PW) PW 
+					option(value=CI) CI 
+					option(value="6J") 6J 
+					option(value=NX) NX 
+					option(value=NK) NK
+					option(value=CZ) CZ 
+					option(value=NJ) NJ 
+					option(value=ZR) ZR 
+					option(value=E7) E7 
+					option(value=AB) AB 
+					option(value=AB) AB 
+					option(value=AB) AB  
 			div(class="form-group")
 				label Expiry
 				input(type="text", name="expiry", class="form-control")
@@ -60,6 +93,7 @@ block content
 		}
 		sendAlert("#{alertScript}");
 
+
 		function populateTraders(traders)
 		{
 			var select = document.getElementById("traderDropdown");
@@ -68,10 +102,12 @@ block content
 			{
 				trader = traders[trader]
 				var el = document.createElement("option");
-			    el.textContent = trader;
-			    el.value = trader.split("-")[0];
-			    select.appendChild(el);
+				el.textContent = trader;
+				el.value = trader.split("-")[0];
+				select.appendChild(el);
 			}
 		}
+
 		populateTraders(JSON.parse('!{traderScript}'));
+
 

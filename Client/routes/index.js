@@ -2,8 +2,10 @@ var express = require('express');
 var moment = require('moment');
 var mysql = require('mysql');
 var loadIndex = require('./loadIndex');
-
+var amqp = require('amqplib/callback_api');
 var router = express.Router();
+
+var myUid;
 
 //@Summary: Load the home page with no alert message
 //@Triggered: GET request sent to domain/
@@ -16,16 +18,17 @@ router.get('/', function(req, res, next) {
 router.post('/', function (req, res) {
   //Values from field and date recieved
   var utcdatetime = moment.utc().format('YYYY-MM-DD HH:mm:ss');
+  var type = req.body.transType;
   var symbol = req.body.symbol;
   var expiry = req.body.expiry;
   var lots = req.body.lots;
   var price = req.body.price;
-  var type = req.body.transType;
+  var side = req.body.transSide;
   var traderID = req.body.trader;
 
   //Check if form is completely filled
-  if (!symbol || !expiry || !lots || !price || !type || !traderID){
-    loadIndex.loadIndexWithMessage(res, 'All values must be filled in.')
+  if (!symbol || !expiry || !lots ||  !side || !traderID || !type){
+    loadIndex.loadIndexWithMessage(res, 'All values must be filled in.', "")
     return;
   }
 
@@ -42,24 +45,33 @@ router.post('/', function (req, res) {
     expiry_year  = expiry_match[2];
     month = romanNumbers.indexOf(expiry_month) == -1 ?  months.indexOf(expiry_month) + 1: romanNumbers.indexOf(expiry_month) + 1;
     if (romanNumbers.indexOf(expiry_month) == -1 && months.indexOf(expiry_month) == -1) {
-      loadIndex.loadIndexWithMessage(res,'Invalid expiry value1.');
+      loadIndex.loadIndexWithMessage(res,'Invalid expiry value.', "");
       return;
     }
     var d = new Date();
     if (parseInt(d.getFullYear().toString().substr(2,2)) > parseInt(expiry_year)){
-      loadIndex.loadIndexWithMessage(res, 'Invalid expiry value2.');
+      loadIndex.loadIndexWithMessage(res, 'Invalid expiry value.', "");
       return;
     }
 
   }
   else {
-    loadIndex.loadIndexWithMessage(res, 'Invalid expiry value3.');
+    loadIndex.loadIndexWithMessage(res, 'Invalid expiry value.', "");
     return;
   }
 
+  if (type == "Limit" && !price)
+  {
+    loadIndex.loadIndexWithMessage(res,'Must fill in limit price on limit orders.', "");
+    return;
+  }
+  if (type != "Limit")
+  {
+    price = null;
+  }
   // Check if price is a number
   if (isNaN(price)){
-    loadIndex.loadIndexWithMessage(res, 'In valid price value.');
+    loadIndex.loadIndexWithMessage(res, 'In valid price value.', "");
     return;
   }
 
@@ -73,16 +85,75 @@ router.post('/', function (req, res) {
 
   connection.connect();
 
+  //Insert into trade database
   connection.query('INSERT INTO Trades VALUES (NULL, "' + symbol + '","' + expiry_month + '","' + expiry_year + '","' + lots + '","' +
-    price + '","' + type + '","' + traderID + '","' + utcdatetime + '");', function(err, rows, fields) {
+    price + '","' + side + '","' + traderID + '","' + utcdatetime + '","' + type + '");', function(err, rows, fields) {
       if (err){
-        loadIndex.loadIndexWithMessage(res, 'Error accessing database. Try again later.');
-        throw err;
+        loadIndex.loadIndexWithMessage(res, 'Error accessing database. Try again later.', "");
       } 
-      connection.end();
+      //Get uid of trade
+      queryString = "SELECT LAST_INSERT_ID();"
+          connection.query(queryString, function(err, rows, fields) {
+            if (err) throw err;
+            myUid = rows[0]['LAST_INSERT_ID()'];
+          });
+      //Send message over MoM
+      amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
+        if (err)
+        {
+          var query = 'DELETE FROM Trades VALUES WHERE uid = "' + myUid + '"';
+          connection.query(queryString, function(err, rows, fields) {
+            if (err) throw err;
+            connection.end();
+            loadIndex.loadIndexWithMessage(res, 'Error accessing MoM. Try again later.', "");
+            return;
+          });
+        }
+
+        conn.createChannel(function(err, ch) {
+          if (err)
+            console.log(err);
+          var q = 'Exchange';
+          var msg = 'Some FIX message: ';
+          ch.assertQueue(q, {durable: false});
+          recieveFills(myUid, res);
+          ch.sendToQueue(q, new Buffer(msg + myUid), {persistent: true});
+          console.log('Sent to Exchange');
+        });
+        setTimeout(function() { conn.close(); }, 500);
+      });
       //Show confirmation 
-      loadIndex.loadIndexWithMessage(res, 'Trade captured!');
+      connection.end();
   });
 });
 
+function recieveFills(myUid, res)
+{
+  var messages = ""
+  amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
+  conn.createChannel(function(err, ch) {
+    if (err)
+      console.log(err);
+    var ex = 'Fill';
+
+    ch.assertExchange(ex, 'topic', {durable: true});
+
+    ch.assertQueue('', {exclusive: true}, function(err, q) {
+      console.log(' [*] Waiting for logs. To exit press CTRL+C');
+      console.log(myUid + ".");
+      ch.bindQueue(q.queue, ex, String(myUid) );
+
+      ch.consume(q.queue, function(msg) {
+        console.log(" [x] %s:'%s'", ex, msg.content.toString());
+        messages += msg.content.toString();
+        if (messages.indexOf("finish") > -1)
+        {
+          conn.close();
+          loadIndex.loadIndexWithMessage(res, 'Trade captured!', messages);
+        }
+      }, {noAck: true});
+    });
+  });
+});
+}
 module.exports = router;

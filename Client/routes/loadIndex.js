@@ -3,7 +3,7 @@ var mysql = require('mysql');
 // Render the index page with a assert message
 //@res - response object to send the index page to
 //@message - message to show in the assert box
-function loadIndexWithMessage(res, message)
+function loadIndexWithMessage(res, message, fills)
 {
     var connection = mysql.createConnection(
     {
@@ -29,7 +29,8 @@ function loadIndexWithMessage(res, message)
     res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
     title: 'Trade Capturer',
     alertScript: message,
-    traderScript: JSON.stringify(traders)});
+    traderScript: JSON.stringify(traders),
+    fills: fills});
 
     connection.end();
 

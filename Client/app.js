@@ -38,7 +38,7 @@ app.post('/newUser', function(req, res){
   // Make sure all values filled in
   if (!first || !last)
   {
-      loadIndex.loadIndexWithMessage(res, "Must provide both first and last name.")
+      loadIndex.loadIndexWithMessage(res, "Must provide both first and last name.", "")
   }
   //Connect and insert value into database
   var connection = mysql.createConnection(
@@ -61,7 +61,7 @@ app.post('/newUser', function(req, res){
     connection.query(queryString, function(err, rows, fields) {
       if (err) throw err;
       connection.end();
-      loadIndex.loadIndexWithMessage(res, 'Success! Your userID is ' + rows[0]['LAST_INSERT_ID()'] + ".");
+      loadIndex.loadIndexWithMessage(res, 'Success! Your userID is ' + rows[0]['LAST_INSERT_ID()'] + ".", "");
     });
   });
 });

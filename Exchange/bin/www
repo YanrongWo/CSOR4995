@@ -7,12 +7,13 @@
 var app = require('../app');
 var debug = require('debug')('Exchange:server');
 var http = require('http');
+var amqp = require('amqplib/callback_api');
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '3001');
 app.set('port', port);
 
 /**
@@ -29,6 +30,45 @@ server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
 
+//Set up listening on MoM
+var recieved_trades = ""
+
+amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
+  conn.createChannel(function(err, ch) {
+    var q = 'Exchange';
+
+    ch.assertQueue(q, {durable: false});
+    console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", q);
+    ch.consume(q, function(msg) {
+      //Process messages
+      ch.ack(msg);
+      var message = String(msg.content.toString());
+      recieved_trades += message;
+      console.log(" [x] Received %s", message);
+
+      //Compose reply
+      var myUid = message.split(": ")[1];
+      console.log(myUid);
+      var reply = "FIX filled message reply - finished";
+      setTimeout(function() {sendReply(reply, myUid)},250);;        
+    }, {noAck: false});
+  });
+});
+
+function sendReply(reply, topic)
+{
+  amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
+    conn.createChannel(function(err, ch) {
+      var ex = 'Fill';
+
+      ch.assertExchange(ex, 'topic', {durable: true});
+      ch.publish(ex, topic, new Buffer(reply));
+      console.log(" [x] Sent %s:'%s'", topic, reply);
+    });
+
+    setTimeout(function() { conn.close(); }, 500);
+  });
+}
 /**
  * Normalize a port into a number, string, or false.
  */
@@ -88,3 +128,5 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+exports.recieved_trades = recieved_trades;

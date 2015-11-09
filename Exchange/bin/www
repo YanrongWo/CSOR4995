@@ -188,12 +188,21 @@ function fillOrder(symbol, price, lots, isBuy){
       } 
     }
   }
+  //Add the constraint that this offer makes on future offers
   addNewConstraint(symbol, isBuy, fills);
   return fills;
 }
 
-
+/*
+Finds the new constraint this trades's fills makes
+on future offers and adds it to the database
+@param symbol - symbol of the offer being filled
+@param isBuy - if the trade was a buy or fill
+@param fills - the fills that are filling this trade
+*/
 function addNewConstraint(symbol, isBuy, fills){
+  //Look for the most extreme price at the latest date
+  //Make that the contraints
   if (fills.length > 0)
   {
     var largest_price = fills[0][1]
@@ -219,9 +228,16 @@ function addNewConstraint(symbol, isBuy, fills){
   console.log("new constraint");
   console.log(largest_price);
   console.log(largest_time);
+  //Add to database
   addConstraint(symbol, largest_price, largest_time, isBuy);
 }
 
+/* Check if the fill satisfies contraints from
+previous trades
+@price - price of the new fill
+@time - time of the new fill 
+@return - true if the fill satisfies contraints, 
+otherwise false*/
 function satisfiesConstraints(price, time){
   var satisfies = true;
   for (constraint in constraints){
@@ -235,6 +251,13 @@ function satisfiesConstraints(price, time){
   return satisfies;  
 }
 
+/* Check if the order generated can be a fill for this trade
+@param symbol - stock symbol of the trade
+@param price - price of the trade
+@param lots - number of lots to buy/sell in the trade
+@param isBuy - if the trade is a buy or sell
+@param generated_order - random generated market order
+@return  - returns the fill or null if not valid */
 function checkForFill(symbol, price, lots, isBuy, generated_order){
   var generated_lots = generated_order[0];
   var generated_price = generated_order[1];
@@ -252,6 +275,12 @@ function checkForFill(symbol, price, lots, isBuy, generated_order){
 
 var constraints;
 
+/* Get the contraints from previous filled trades from 
+the database, then fill the trade in the callback
+@param symbol - symbol of the next trade to fill
+@param price - price of the next trade to fill
+@param lots - number of lots of the next trade
+@param isBuy - if the next trade is a buy or sell */
 function getConstraints(symbol, price, lots, isBuy){
 
   var queryString = "Select price, time FROM Constraints WHERE isBuy='" + isBuy + "' and symbol='" + symbol + "'";
@@ -266,8 +295,14 @@ function getConstraints(symbol, price, lots, isBuy){
 }
 
 console.log(getConstraints("LN", 93.30, 3, true));
-connection.end();
 
+/* Add the new contraint to the database 
+and removes outdated contraints in the callback
+@param symbol - symbol of the new contraint
+@param price  - price of the new contraint
+@param time - time of the new contraint
+@param isBuy - if the contraint was a sell/buy
+*/
 function addConstraint(symbol, price, time, isBuy){
   var queryString = "INSERT INTO Constraints VALUES ('" + symbol + "','" + price + "','" + time + "','" + isBuy + "');";
 
@@ -277,6 +312,8 @@ function addConstraint(symbol, price, time, isBuy){
   });
 }
 
+/* Removes outdated contraints from the database
+and processes the next trade in the callback*/
 function removeConstraints(){
   var queryString = "DELETE FROM Constraints WHERE time < " + (d.getTime() - 60000) + ";"
   connection.query(queryString, function(err, rows, fields) {

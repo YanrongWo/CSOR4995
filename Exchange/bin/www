@@ -201,8 +201,15 @@ function addNewConstraint(symbol, isBuy, fills){
     for (fill in fills)
     {
       fill = fills[fill]
-      if (fill[1] > largest_price){
-        largest_price = fill[1];
+      if (isBuy){
+        if (fill[1] > largest_price){
+          largest_price = fill[1];
+        }
+      }
+      else{
+        if (fill[1] < largest_price){
+          largest_price = fill[1];
+        }  
       }
       if (fill[2] > largest_time){
         largest_time = fill[2];

@@ -1,0 +1,66 @@
+.left{
+	float: left;
+	overflow: auto;
+	width: 50%;
+}
+
+.right{
+	float: right;
+	overflow: auto;
+	width: 50%;
+}
+
+#makeTradeForm{
+	width: 20vw;
+	margin: 10vw;
+	margin-top: 2vw;
+	margin-bottom:5vw;
+}
+
+#sendCSVTradesForm{
+	overflow: auto;
+	width: 20vw;
+	margin: 5vw;
+}
+
+#sendCSVAggregateForm{
+	overflow: auto;
+	width: 20vw;
+	margin: 5vw;
+}
+
+#createNewUserForm{
+	width: 25vw;
+	margin-top: 2vw;
+}
+
+.form-control{
+	width: inherit;
+}
+
+.form-group{
+	overflow: auto;
+}
+h1{
+	font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+p{
+	font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.title{
+	margin-top: 4vw;
+}
+
+#welcome{
+	margin-left: 10vw;
+}
+
+#underTitle{
+	margin-left: 10vw;
+}
+
+#limitPrice{
+	display: none;
+}

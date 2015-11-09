@@ -1,0 +1,135 @@
+extends layout
+
+block content
+	div(class="left")
+		h1.title#welcome Welcome to #{title}
+		p#underTitle Make a trade by entering your information below
+
+		form(name="makeTrade", action="/", method="post", id="makeTradeForm")
+
+			div(class="dropdown")
+				label Symbol
+				select(name="symbol", id="symbolDropdown", ss="form-control") 
+					option(value=LN) LN 
+					option(value=NN) NN 
+					option(value=NG) NP 
+					option(value=HH) HH 
+					option(value=ON) ON 
+					option(value=HP) HP 
+					option(value=PD) PD 
+					option(value=HB) HB 
+					option(value=TC) TC 
+					option(value=PH) PH 
+					option(value=NR) NR 
+					option(value=TR) TR 
+					option(value=NL) NL 
+					option(value="5Z") 5Z 
+					option(value=GL) GL 
+					option(value=PG) PG 
+					option(value=IN) IN 
+					option(value=NH) NH 
+					option(value="9F") 9F 
+					option(value=NW) NW 
+					option(value=G4) G4 
+					option(value=PW) PW 
+					option(value=CI) CI 
+					option(value="6J") 6J 
+					option(value=NX) NX 
+					option(value=NK) NK
+					option(value=CZ) CZ 
+					option(value=NJ) NJ 
+					option(value=ZR) ZR 
+					option(value=E7) E7 
+					option(value=AB) AB 
+					option(value=AB) AB 
+					option(value=AB) AB  
+			div(class="form-group")
+				label(class="checkbox-inline")
+					input(type="radio", name="transType", value="Market", onclick="hidePrice()")
+					| Market
+				label(class="checkbox-inline")
+					input(type="radio", name="transType", value="Limit", onclick="showPrice()")
+					| Limit
+				label(class="checkbox-inline")
+					input(type="radio", name="transType", value="Pegged", onclick="hidePrice()")
+					| Pegged
+			div(class="form-group", id="limitPrice")
+				label Limit Price
+				input(type="text", name="price", class="form-control")
+			div(class="form-group")
+				label Expiry
+				input(type="text", name="expiry", class="form-control")
+			div(class="form-group")
+				label Lots
+				input(type="number", name="lots", class="form-control")
+			div(class="form-group")
+				label(class="checkbox-inline")
+					input(type="radio", name="transSide", value="Sell")
+					| Sell
+				label(class="checkbox-inline")
+					input(type="radio", name="transSide", value="Buy")
+					| Buy
+			div(class="form-group")
+				label Trader 
+				select(name="trader", id="traderDropdown", class="form-control")
+			div(class="form-group")
+				input(type="submit", value="Submit", class="btn btn-default", style="float:right; margin-top:2vw")
+	div(class="right")
+		h1.title Create a New User
+		form(name="createNewUser", action="/newUser", method="post", id="createNewUserForm")
+			div(class="form-group")
+				label First Name
+				input(type="text", name="first", class="form-control")
+			div(class="form-group")
+				label Last Name
+				input(type="text", name="last", class="form-control")
+			div(class="form-group")
+				input(type="submit", value="Create New Trader", class="btn btn-default", style="float:right; margin-top:2vw")
+		h1.title Create CSV Files
+		form(name="sendCSVTrades", action="/CSVTrades", method="get", id="sendCSVTradesForm")
+			div(class="form-group")
+				input(type="submit", value="Get CSV Trades", class="btn btn-default")
+
+		form(name="sendCSVAggregate", action="/CSVAggregate", method="get", id="sendCSVAggregateForm")
+			div(class="form-group")
+				input(type="submit", value="Get CSV Aggregate", class="btn btn-default")
+	div(id="bottom")
+		textarea(rows="4", width="80%", id="fills") 
+			!{fills}
+	script.
+		function sendAlert(msg){
+			if (msg)
+			{
+				alert(msg);
+			}
+		}
+		sendAlert("#{alertScript}");
+
+
+		function populateTraders(traders)
+		{
+			var select = document.getElementById("traderDropdown");
+
+			for (trader in traders)
+			{
+				trader = traders[trader]
+				var el = document.createElement("option");
+				el.textContent = trader;
+				el.value = trader.split("-")[0];
+				select.appendChild(el);
+			}
+		}
+
+		populateTraders(JSON.parse('!{traderScript}'));
+
+		function showPrice(){
+			document.getElementById("limitPrice").style.display = "block";
+		}
+
+		function hidePrice(){
+			document.getElementById("limitPrice").style.display = "none";
+		}
+
+
+
+

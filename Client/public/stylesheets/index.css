@@ -20,13 +20,24 @@
 #sendCSVTradesForm{
 	overflow: auto;
 	width: 20vw;
-	margin: 5vw;
+	margin-left: 5vw;
+}
+
+#pl-radio {
+	display:inline-block;
+
+}
+
+#sendCSVPLForm{
+	overflow: auto;
+	margin-left: 5vw;
+	display:inline-block;
 }
 
 #sendCSVAggregateForm{
 	overflow: auto;
 	width: 20vw;
-	margin: 5vw;
+	margin-left: 5vw;
 }
 
 #createNewUserForm{
@@ -63,4 +74,15 @@ p{
 
 #limitPrice{
 	display: none;
+}
+
+#fill-title {
+	position: relative;
+	left:100px;
+}
+
+textarea {
+	position: relative;
+	left:100px;
+	width:300px;
 }

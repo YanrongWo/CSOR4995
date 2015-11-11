@@ -10,6 +10,7 @@ var http = require('http');
 var amqp = require('amqplib/callback_api');
 var mysql = require('mysql');
 
+
 /**
  * Get port from environment and store in Express.
  */
@@ -36,7 +37,7 @@ var symbols = ["LN" , "NN" , "NP" , "HH" , "ON" , "HP" ,
   "PD" , "HB" , "TC" , "PH" , "NR" , "TR" , "NL" , "5Z" ,
   "GL" , "PG" , "IN" , "NH" , "9F" , "NW" , "G4" , "PW" ,
   "CI" , "6J" , "NX" , "NK" , "CZ" , "NJ" , "ZR" , "E7" , 
-  "AB" , "AB" , "AB"]; 
+  "AB"]; 
 
 var Milliseconds1Day = 24 * 60 * 60 * 1000;
 var Milliseconds30Days = 30 * Milliseconds1Day;

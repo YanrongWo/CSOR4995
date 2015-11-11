@@ -318,12 +318,12 @@ function removeConstraints(){
   var queryString = "DELETE FROM Constraints WHERE time < " + (d.getTime() - 60000) + ";"
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    //var next_task = recieved_trades.pop()
-    //getConstraints(next_task.symbol, next_task.price, next_task.lots, next_task.isBuy);
+    var next_task = recieved_trades.pop()
+    getConstraints(next_task.symbol, next_task.price, next_task.lots, next_task.isBuy);
   }); 
 }
 
-/*//Set up listening on MoM
+//Set up listening on MoM
 var recieved_trades = []
 
 amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
@@ -361,7 +361,7 @@ function sendReply(reply, topic)
 
     setTimeout(function() { conn.close(); }, 500);
   });
-}*/
+}
 
 /**
  * Normalize a port into a number, string, or false.

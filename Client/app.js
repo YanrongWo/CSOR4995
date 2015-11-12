@@ -8,6 +8,8 @@ var loadIndex = require('./routes/loadIndex');
 var routes = require('./routes/index');
 var users = require('./routes/users');
 
+var amqp = require('amqplib/callback_api');
+
 var app = express();
 
 // view engine setup
@@ -106,6 +108,206 @@ app.get('/CSVTrades', function (req, res) {
   });
 });
 
+function getMarketPrice(symbol) {
+  amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
+  conn.createChannel(function(err, ch) {
+    if (err)
+      console.log(err);
+    var q = 'Exchange';
+    var msg = "MARKETPRICE: "+symbol;
+    ch.assertQueue(q, {durable: false});
+    receiveMarketPrice(symbol);
+    ch.sendToQueue(q, new Buffer(msg), {persistent: true});
+    console.log("Exchange market data request: " + symbol);
+  });
+  setTimeout(function() { conn.close(); }, 500);
+  });
+}
+
+function receiveMarketPrice(symbol) {
+  var messages = ""
+  amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
+  conn.createChannel(function(err, ch) {
+    if (err)
+      console.log(err);
+    var ex = 'MarketPrice';
+
+    ch.assertExchange(ex, 'topic', {durable: true});
+
+    ch.assertQueue('', {exclusive: true}, function(err, q) {
+      ch.bindQueue(q.queue, ex, symbol );
+
+      ch.consume(q.queue, function(msg) {
+        msg = msg.content.toString();
+        console.log(symbol + " market Price received: "+msg);
+        
+        //send msg price to PnL calculation
+        marketprices[symbol] = parseInt(msg);
+
+      }, {noAck: true});
+    });
+  });
+  });
+}
+
+getMarketPrice("HH");
+
+var marketprices = {};
+//@Summary: Write PnL By Trades to CSV File
+//@Triggered: GET request sent to domain/CSVPL
+app.get('/CSVPL', function (req, res) {
+	var pltype = req.query["pltype"];
+	if(pltype !== "trades" && pltype !== "trader" && pltype !== "product") {
+		res.send("ERROR");
+		return 0;
+	}
+
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+ 
+  connection.connect();
+   
+  var queryString = 'SELECT * FROM Trades';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+
+			marketprices = {};
+      for(row in rows) {
+				row = rows[row];
+				var sym = row["symbol"];
+				if(!(sym in marketprices)) {
+					marketprices[sym] = -1;
+					getMarketPrice(sym);
+				}
+			}
+		setTimeout(function() {generateCSVPL(pltype, res, rows); }, 500);
+    connection.end();
+  });
+});
+
+function generateCSVPL(pltype, res, trades) {
+	for(var sym in marketprices) {
+		if(marketprices[sym] === -1) {
+			setTimeout(function() {generateCSVPL(pltype, res, trades); }, 500);
+			return 0;
+		}
+	}
+	console.log("ALL HERE!");
+
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+ 
+  connection.connect();
+
+	queryString = 'SELECT * FROM Fills';
+	connection.query(queryString, function(err2, fills, fields) {  
+		if (err2) throw err2;
+
+		var tradesprofit = {};
+		var profit = 0;
+
+		for(var trade in trades) {
+			trade = trades[trade];
+			var total = 0;
+			var fillnum = 0;
+			for(var fill in fills) {
+				fill = fills[fill];
+				if(fill["tradeID"] === trade["uid"]) {
+					total += fill["price"]*fill["lots"];
+					fillnum += fill["lots"];
+				}
+			}
+			if(fillnum > 0) {
+				if(trade["side"] === "Sell") {
+					tradesprofit[trade["uid"]] = total;
+					profit += total;
+				}
+				if(trade["side"] === "Buy") {
+					var currentval = fillnum * marketprices[trade["symbol"]];
+					tradesprofit[trade["uid"]] = total - currentval;
+					profit += total - currentval;
+				}
+			}
+		}
+
+		//setup CSV
+    res.setHeader('Content-disposition', 'attachment; filename=pnl'+pltype+'.csv');
+    res.setHeader('Content-type', 'text/csv');
+		var toSend = "";
+
+
+		if(pltype === "trades") {
+			toSend += "TradeID,Profit\n"
+			for(var row in tradesprofit) {
+				toSend += row+","+tradesprofit[row]+"\n";
+			}
+			res.send(toSend);
+		}
+		if(pltype === "trader") {
+			var tradersprofit = {}; 
+			for(var trade in trades) {
+				trade = trades[trade];
+				var p = tradesprofit[trade["uid"]];
+				var traderID = trade["traderID"];
+				if(trade["uid"] in tradesprofit) {
+					if(traderID in tradersprofit) {
+						tradersprofit[traderID] += tradesprofit[trade["uid"]];
+					}
+					else {
+						tradersprofit[traderID] = tradesprofit[trade["uid"]];
+					}
+				}
+			}
+
+			toSend += "TraderID,Profit\n";
+			for(var row in tradersprofit) {
+				toSend += row+","+tradersprofit[row]+"\n";
+			}
+			console.log(tradesprofit);
+			res.send(toSend);
+		}
+		if(pltype === "product") {
+			var productprofit = {};
+			for(var trade in trades) {
+				trade = trades[trade];
+				var sym = trade["symbol"];
+				var expm = trade["expiry_month"];
+				var expy = trade["expiry_year"];
+				var key = sym+"-"+expm+"-"+expy;
+				if(trade["uid"] in tradesprofit) {
+					if(key in productprofit) {
+						productprofit[key] += tradesprofit[trade["uid"]];
+					}
+					else {
+						productprofit[key] = tradesprofit[trade["uid"]];
+					}
+				}
+			}
+	
+			toSend += "symbol,expiry_month,expiry_year,Profit\n";
+			for(var row in productprofit) {
+				var prod = row.split("-");
+				toSend += prod[0]+","+prod[1]+","+prod[2]+","+productprofit[row]+"\n";
+			}
+			res.send(toSend);
+		}
+	});
+}
+
+
 //@Summary: Write Aggregate Position to CSV File
 //@Triggered: GET request sent to domain/CSVAggregate
 app.get('/CSVAggregate', function (req, res) {
@@ -120,29 +322,72 @@ app.get('/CSVAggregate', function (req, res) {
  
   connection.connect();
    
-  var queryString = "Select symbol, expiry_month, expiry_year, sum(lots) as lots FROM"  +
-    ' ((SELECT symbol, IF(type="Buy", sum(lots), -1 * sum(lots)) as lots, expiry_year, ' +
-    "expiry_month, type FROM Trades GROUP BY symbol, expiry_year, expiry_month, type) " +
-    "as summedTrades) GROUP BY symbol, expiry_year, expiry_month;";
-   
-  connection.query(queryString, function(err, rows, fields) {
+  var queryString = 'SELECT * FROM Trades';
+  connection.query(queryString, function(err, trades, fields) {
     if (err) throw err;
 
     res.setHeader('Content-disposition', 'attachment; filename=aggregate.csv');
     res.setHeader('Content-type', 'text/csv');
+		queryString = 'SELECT * FROM Fills';
 
-    var toSend = "";
-    for (field in fields){
-      field = fields[field];
-      toSend += field.name + ",";
-    }
-    toSend = toSend.substring(0, toSend.length - 1) + "\n";
-    for (row in rows){
-      row = rows[row];
-      toSend += row.symbol + "," + row.expiry_month + "," + row.expiry_year + "," 
-                + row.lots + "\n"; 
-    }
-    res.send(toSend);
+  	connection.query(queryString, function(err, fills, fields2) {
+	    if (err) throw err;
+
+			var tradesvalue = {};
+			var tradeslots = {};
+
+			for(var trade in trades) {
+				trade = trades[trade];
+				var total = 0;
+				var fillnum = 0;
+				for(var fill in fills) {
+					fill = fills[fill];
+					if(fill["tradeID"] === trade["uid"]) {
+						total += fill["price"]*fill["lots"];
+						fillnum += fill["lots"];
+					}
+				}
+				if(fillnum > 0) {
+					if(trade["side"] === "Sell") {
+						tradesvalue[trade["uid"]] = total;
+						tradeslots[trade["uid"]] = -1*fillnum;
+					}
+					if(trade["side"] === "Buy") {
+						tradesvalue[trade["uid"]] = -1*total;
+						tradeslots[trade["uid"]] = fillnum;
+					}
+				}
+			}
+			console.log(tradesvalue);
+
+			//by product
+			var productvalue = {};
+			var productlots = {};
+			for(var trade in trades) {
+				trade = trades[trade];
+				var sym = trade["symbol"];
+				var expm = trade["expiry_month"];
+				var expy = trade["expiry_year"];
+				var key = sym+"-"+expm+"-"+expy;
+				if(trade["uid"] in tradesvalue) {
+					if(key in productvalue) {
+						productvalue[key] += tradesvalue[trade["uid"]];
+						productlots[key] += tradeslots[trade["uid"]];
+					}
+					else {
+						productvalue[key] = tradesvalue[trade["uid"]];
+						productlots[key] = tradeslots[trade["uid"]];
+					}
+				}
+			}
+	
+			var toSend = "symbol,expiry_month,expiry_year,lots_owed,value_owed\n";
+			for(var row in productlots) {
+				var prod = row.split("-");
+				toSend += prod[0]+","+prod[1]+","+prod[2]+","+productlots[row]+","+productvalue[row]+"\n";
+			}
+			res.send(toSend);
+		});
 
     connection.end();
   });

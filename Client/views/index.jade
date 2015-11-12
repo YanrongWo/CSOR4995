@@ -98,16 +98,16 @@ block content
 		form(name="sendCSVPL", action="/CSVPL", method="get", id="sendCSVPLForm")
 			div(class="form-group")
 				input(type="submit", value="Get CSV PnL", class="btn btn-default")
-		div(class="form-group", id="pl-radio")
-				label(class="checkbox-inline")
-					input(type="radio", name="transType", value="Market", onclick="hidePrice()")
-					| Market
-				label(class="checkbox-inline")
-					input(type="radio", name="transType", value="Limit", onclick="showPrice()")
-					| Limit
-				label(class="checkbox-inline")
-					input(type="radio", name="transType", value="Pegged", onclick="hidePrice()")
-					| Pegged
+			div(class="form-group", id="pl-radio")
+					label(class="checkbox-inline")
+						input(type="radio", name="pltype", value="trades")
+						| By Trades
+					label(class="checkbox-inline")
+						input(type="radio", name="pltype", value="trader")
+						| By Trader
+					label(class="checkbox-inline")
+						input(type="radio", name="pltype", value="product")
+						| By Product
 	
 	script.
 		function sendAlert(msg){

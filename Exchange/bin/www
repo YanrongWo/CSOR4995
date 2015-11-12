@@ -336,15 +336,32 @@ function removeConstraints(){
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
     console.log("Removed Constraints");
-    // var next_task = recieved_trades.pop()
-    // getConstraints(next_task.symbol, next_task.price, next_task.lots, next_task.isBuy);
+    var reply = "FIX filled message reply - finished";
+    setTimeout(function() {sendReply(reply)},250);;      
+    if (recieved_trades.length > 0){
+      var next_task = recieved_trades.pop();
+      processTrade(next_task);
+    }
+    else{
+      isWorking = false;
+    }
   }); 
 }
 
+function processTrade(message){
+  isWorking = true;
+  var symbol = Fix.read(message).Symbol;
+  var price = Fix.read(message).Price;
+  var lots = Fix.read(message).OrderQty;
+  var expiry = Fix.read(message).MaturityMonthYear;
+  console.log(symbol);
+          
+  getConstraints(symbol, parseFloat(price), parseInt(lots), Fix.read(message).Side == "Buy", expiry);
+}
 
 //Set up listening on MoM
 var recieved_trades = []
-
+var isWorking = false;
 amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
   conn.createChannel(function(err, ch) {
     var q = 'Exchange';
@@ -365,18 +382,13 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
 				// console.log(myUid);
 
 				// Get 
-				var symbol = Fix.read(message).Symbol;
-				var price = Fix.read(message).Price;
-				var lots = Fix.read(message).OrderQty;
-        var expiry = Fix.read(message).MaturityMonthYear;
-
-				console.log(symbol);
-
-				getConstraints(symbol, parseFloat(price), parseInt(lots), Fix.read(message).Side == "Buy", expiry);
-				
-
-				var reply = "FIX filled message reply - finished";
-				setTimeout(function() {sendReply(reply)},250);;        
+        if (!isWorking){
+          processTrade(message);
+        }
+        else{
+          recieved_trades.push(message);
+        }
+  
       }
       else {
         //market price request

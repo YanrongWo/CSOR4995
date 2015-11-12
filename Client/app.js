@@ -106,6 +106,56 @@ app.get('/CSVTrades', function (req, res) {
   });
 });
 
+//@Summary: Write PnL By Trades to CSV File
+//@Triggered: GET request sent to domain/CSVPL
+app.get('/CSVPL', function (req, res) {
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+ 
+  connection.connect();
+   
+  var queryString = 'SELECT * FROM Trades';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+
+    queryString = 'SELECT * FROM Fills';
+    connection.query(queryString, function(err2, rows2, fields2) {  
+     if (err2) throw err2;
+
+      for (row in rows) {
+        row = rows[row];
+        var uid = row.uid;
+        if(row.side === "Sell") {}
+          var profit = 0;
+          for(row2 in rows2) {
+            row2 = rows2[row2];
+            if(row2.tradeID === uid) pnl += row2.lots * row2.trades;
+          }
+        }
+        else {
+          var buyval = 0;
+          for(row2 in rows2) {
+            row2 = rows2[row2];
+            if(row2.tradeID === uid) pnl += row2.lots * row2.trades;
+          }
+        }
+        toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
+                  + row.expiry_year + "," + row.lots + "," + row.price + ","
+                  + row.type + "," + row.traderID + "," + row.transactionTime + "\n";
+    }
+    res.send(toSend);
+
+    connection.end();
+  });
+});
+
 //@Summary: Write Aggregate Position to CSV File
 //@Triggered: GET request sent to domain/CSVAggregate
 app.get('/CSVAggregate', function (req, res) {

@@ -157,7 +157,7 @@ var marketprices = {};
 //@Triggered: GET request sent to domain/CSVPL
 app.get('/CSVPL', function (req, res) {
 	var pltype = req.query["pltype"];
-	if(pltype !== "trades" || pltype !== "trader" || pltype !== "product") {
+	if(pltype !== "trades" && pltype !== "trader" && pltype !== "product") {
 		res.send("ERROR");
 		return 0;
 	}
@@ -250,7 +250,7 @@ function generateCSVPL(pltype, res, trades) {
 
 
 		if(pltype === "trades") {
-			toSend += "TradeID, Profit\n"
+			toSend += "TradeID,Profit\n"
 			for(var row in tradesprofit) {
 				toSend += row+","+tradesprofit[row]+"\n";
 			}
@@ -272,7 +272,7 @@ function generateCSVPL(pltype, res, trades) {
 				}
 			}
 
-			toSend += "TraderID, Profit\n";
+			toSend += "TraderID,Profit\n";
 			for(var row in tradersprofit) {
 				toSend += row+","+tradersprofit[row]+"\n";
 			}
@@ -297,9 +297,10 @@ function generateCSVPL(pltype, res, trades) {
 				}
 			}
 	
-			toSend += "Product, Profit\n";
+			toSend += "symbol,expiry_month,expiry_year,Profit\n";
 			for(var row in productprofit) {
-				toSend += row+","+productprofit[row]+"\n";
+				var prod = row.split("-");
+				toSend += prod[0]+","+prod[1]+","+prod[2]+","+productprofit[row]+"\n";
 			}
 			res.send(toSend);
 		}
@@ -321,29 +322,72 @@ app.get('/CSVAggregate', function (req, res) {
  
   connection.connect();
    
-  var queryString = "Select symbol, expiry_month, expiry_year, sum(lots) as lots FROM"  +
-    ' ((SELECT symbol, IF(type="Buy", sum(lots), -1 * sum(lots)) as lots, expiry_year, ' +
-    "expiry_month, type FROM Trades GROUP BY symbol, expiry_year, expiry_month, type) " +
-    "as summedTrades) GROUP BY symbol, expiry_year, expiry_month;";
-   
-  connection.query(queryString, function(err, rows, fields) {
+  var queryString = 'SELECT * FROM Trades';
+  connection.query(queryString, function(err, trades, fields) {
     if (err) throw err;
 
     res.setHeader('Content-disposition', 'attachment; filename=aggregate.csv');
     res.setHeader('Content-type', 'text/csv');
+		queryString = 'SELECT * FROM Fills';
 
-    var toSend = "";
-    for (field in fields){
-      field = fields[field];
-      toSend += field.name + ",";
-    }
-    toSend = toSend.substring(0, toSend.length - 1) + "\n";
-    for (row in rows){
-      row = rows[row];
-      toSend += row.symbol + "," + row.expiry_month + "," + row.expiry_year + "," 
-                + row.lots + "\n"; 
-    }
-    res.send(toSend);
+  	connection.query(queryString, function(err, fills, fields2) {
+	    if (err) throw err;
+
+			var tradesvalue = {};
+			var tradeslots = {};
+
+			for(var trade in trades) {
+				trade = trades[trade];
+				var total = 0;
+				var fillnum = 0;
+				for(var fill in fills) {
+					fill = fills[fill];
+					if(fill["tradeID"] === trade["uid"]) {
+						total += fill["price"]*fill["lots"];
+						fillnum += fill["lots"];
+					}
+				}
+				if(fillnum > 0) {
+					if(trade["side"] === "Sell") {
+						tradesvalue[trade["uid"]] = total;
+						tradeslots[trade["uid"]] = -1*fillnum;
+					}
+					if(trade["side"] === "Buy") {
+						tradesvalue[trade["uid"]] = -1*total;
+						tradeslots[trade["uid"]] = fillnum;
+					}
+				}
+			}
+			console.log(tradesvalue);
+
+			//by product
+			var productvalue = {};
+			var productlots = {};
+			for(var trade in trades) {
+				trade = trades[trade];
+				var sym = trade["symbol"];
+				var expm = trade["expiry_month"];
+				var expy = trade["expiry_year"];
+				var key = sym+"-"+expm+"-"+expy;
+				if(trade["uid"] in tradesvalue) {
+					if(key in productvalue) {
+						productvalue[key] += tradesvalue[trade["uid"]];
+						productlots[key] += tradeslots[trade["uid"]];
+					}
+					else {
+						productvalue[key] = tradesvalue[trade["uid"]];
+						productlots[key] = tradeslots[trade["uid"]];
+					}
+				}
+			}
+	
+			var toSend = "symbol,expiry_month,expiry_year,lots_owed,value_owed\n";
+			for(var row in productlots) {
+				var prod = row.split("-");
+				toSend += prod[0]+","+prod[1]+","+prod[2]+","+productlots[row]+","+productvalue[row]+"\n";
+			}
+			res.send(toSend);
+		});
 
     connection.end();
   });

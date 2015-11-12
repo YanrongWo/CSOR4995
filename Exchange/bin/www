@@ -9,7 +9,7 @@ var debug = require('debug')('Exchange:server');
 var http = require('http');
 var amqp = require('amqplib/callback_api');
 var mysql = require('mysql');
-
+var Fix = require('../node_modules/fix/fix.js');
 
 /**
  * Get port from environment and store in Express.
@@ -99,8 +99,11 @@ function generateOrder(symbol, time, isBuy, isFuture){
   var lots = Math.round((Math.random() * 1000) + 1);
   //get the value of the symbol according to its sin wave
   symbol_index = symbols.indexOf(symbol);
+  console.log(symbol_index);
   symbol_shift = shift[symbol_index];
+  console.log(symbol_shift);
   symbol_amp = amp[symbol_index];
+  console.log(symbol_amp);
   mean = symbol_amp * Math.sin(period * time) + symbol_shift;
   console.log("mean");
   console.log(mean);
@@ -292,10 +295,10 @@ function getConstraints(symbol, price, lots, isBuy){
     constraints = rows;
     var result = fillOrder(symbol, price, lots, isBuy);
     console.log(result);
+    return result;
   });
 }
 
-console.log(getConstraints("LN", 93.30, 3, true));
 
 /* Add the new contraint to the database 
 and removes outdated contraints in the callback
@@ -319,8 +322,8 @@ function removeConstraints(){
   var queryString = "DELETE FROM Constraints WHERE time < " + (d.getTime() - 60000) + ";"
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    var next_task = recieved_trades.pop()
-    getConstraints(next_task.symbol, next_task.price, next_task.lots, next_task.isBuy);
+    // var next_task = recieved_trades.pop()
+    // getConstraints(next_task.symbol, next_task.price, next_task.lots, next_task.isBuy);
   }); 
 }
 
@@ -339,12 +342,25 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
       var message = String(msg.content.toString());
       recieved_trades.push(message);
       console.log(" [x] Received %s", message);
+      console.log(message);
+
 
       //Compose reply
-      var myUid = message.split(": ")[1];
-      console.log(myUid);
+      // var myUid = message.split(": ")[1];
+      // console.log(myUid);
+
+      // Get 
+      var symbol = Fix.read(message).Symbol;
+      var price = Fix.read(message).Price;
+      var lots = Fix.read(message).OrderQty;
+
+      console.log(symbol);
+
+      getConstraints(symbol, parseFloat(price), parseInt(lots), Fix.read(message).Side == "Buy");
+      
+
       var reply = "FIX filled message reply - finished";
-      setTimeout(function() {sendReply(reply, myUid)},250);;        
+      setTimeout(function() {sendReply(reply)},250);;        
     }, {noAck: false});
   });
 });

@@ -3,6 +3,7 @@ var moment = require('moment');
 var mysql = require('mysql');
 var loadIndex = require('./loadIndex');
 var amqp = require('amqplib/callback_api');
+var Fix = require('../node_modules/fix/fix.js');
 var router = express.Router();
 
 var myUid;
@@ -25,6 +26,10 @@ router.post('/', function (req, res) {
   var price = req.body.price;
   var side = req.body.transSide;
   var traderID = req.body.trader;
+  var date = new Date();
+
+
+
 
   //Check if form is completely filled
   if (!symbol || !expiry || !lots ||  !side || !traderID || !type){
@@ -91,39 +96,56 @@ router.post('/', function (req, res) {
       if (err){
         loadIndex.loadIndexWithMessage(res, 'Error accessing database. Try again later.', "");
       } 
-      //Get uid of trade
-      queryString = "SELECT LAST_INSERT_ID();"
-          connection.query(queryString, function(err, rows, fields) {
-            if (err) throw err;
-            myUid = rows[0]['LAST_INSERT_ID()'];
-          });
-      //Send message over MoM
-      amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
-        if (err)
-        {
-          var query = 'DELETE FROM Trades VALUES WHERE uid = "' + myUid + '"';
-          connection.query(queryString, function(err, rows, fields) {
-            if (err) throw err;
-            connection.end();
-            loadIndex.loadIndexWithMessage(res, 'Error accessing MoM. Try again later.', "");
-            return;
-          });
-        }
-
-        conn.createChannel(function(err, ch) {
+        //Get uid of trade
+        queryString = "SELECT LAST_INSERT_ID();"
+            connection.query(queryString, function(err, rows, fields) {
+              if (err) throw err;
+              myUid = rows[0]['LAST_INSERT_ID()'];
+            
+        //Send message over MoM
+        amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
           if (err)
-            console.log(err);
-          var q = 'Exchange';
-          var msg = 'Some FIX message: ';
-          ch.assertQueue(q, {durable: false});
-          recieveFills(myUid, res);
-          ch.sendToQueue(q, new Buffer(msg + myUid), {persistent: true});
-          console.log('Sent to Exchange');
+          {
+            var query = 'DELETE FROM Trades VALUES WHERE uid = "' + myUid + '"';
+            connection.query(queryString, function(err, rows, fields) {
+              if (err) throw err;
+              connection.end();
+              loadIndex.loadIndexWithMessage(res, 'Error accessing MoM. Try again later.', "");
+              return;
+            });
+          }
+
+            // Generate Fix message
+          var fix_message = Fix.message({
+            TransactTime: utcdatetime,
+            SendingTime: date.getTime(),
+            OrdType: type,
+            Symbol: symbol,
+            MaturityMonthYear: expiry,
+            OrderQty: lots,
+            Price: price,
+            Side: side,
+            SenderCompID: traderID,
+            OrderID: myUid
+          }, true);
+
+          console.log(fix_message);
+
+          conn.createChannel(function(err, ch) {
+            if (err)
+              console.log(err);
+            var q = 'Exchange';
+            var msg =  fix_message;
+            ch.assertQueue(q, {durable: false});
+            recieveFills(myUid, res);
+            ch.sendToQueue(q, new Buffer(msg), {persistent: true});
+            console.log('Sent to Exchange');
+          });
+          setTimeout(function() { conn.close(); }, 500);
         });
-        setTimeout(function() { conn.close(); }, 500);
-      });
-      //Show confirmation 
-      connection.end();
+        //Show confirmation 
+        connection.end();
+    });
   });
 });
 
@@ -155,5 +177,7 @@ function recieveFills(myUid, res)
     });
   });
 });
+
+
 }
 module.exports = router;

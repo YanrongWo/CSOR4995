@@ -150,7 +150,7 @@ where each triple is (lots, price, time)
 @param lots - number of lots to buy/sell
 @param isBuy - if the order to generate fills for is a buy or sell
 */
-function fillOrder(symbol, price, lots, isBuy){
+function fillOrder(symbol, price, lots, isBuy, expiry){
   var filled = false;
   var fills = []
 
@@ -202,7 +202,7 @@ function fillOrder(symbol, price, lots, isBuy){
     }
   }
   //Add the constraint that this offer makes on future offers
-  addNewConstraint(symbol, isBuy, fills);
+  addNewConstraint(symbol, isBuy, fills, expiry);
   return fills;
 }
 
@@ -213,7 +213,7 @@ on future offers and adds it to the database
 @param isBuy - if the trade was a buy or fill
 @param fills - the fills that are filling this trade
 */
-function addNewConstraint(symbol, isBuy, fills){
+function addNewConstraint(symbol, isBuy, fills, expiry){
   //Look for the most extreme price at the latest date
   //Make that the contraints
   if (fills.length > 0)
@@ -242,7 +242,7 @@ function addNewConstraint(symbol, isBuy, fills){
   console.log(largest_price);
   console.log(largest_time);
   //Add to database
-  addConstraint(symbol, largest_price, largest_time, isBuy);
+  addConstraint(symbol, largest_price, largest_time, isBuy, expiry);
 }
 
 /* Check if the fill satisfies contraints from
@@ -294,15 +294,17 @@ the database, then fill the trade in the callback
 @param price - price of the next trade to fill
 @param lots - number of lots of the next trade
 @param isBuy - if the next trade is a buy or sell */
-function getConstraints(symbol, price, lots, isBuy){
+function getConstraints(symbol, price, lots, isBuy, expiry){
 
-  var queryString = "Select price, time FROM Constraints WHERE isBuy='" + isBuy + "' and symbol='" + symbol + "'";
+  var queryString = "Select price, time FROM Constraints WHERE isBuy='" + 
+    isBuy + "' and symbol='" + symbol + "' and expiry='" + expiry + "';";
 
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    console.log("here!");
+    console.log("Got Constraints");
     constraints = rows;
-    var result = fillOrder(symbol, price, lots, isBuy);
+    console.log(constraints);
+    var result = fillOrder(symbol, price, lots, isBuy, expiry);
     console.log(result);
     return result;
   });
@@ -316,11 +318,13 @@ and removes outdated contraints in the callback
 @param time - time of the new contraint
 @param isBuy - if the contraint was a sell/buy
 */
-function addConstraint(symbol, price, time, isBuy){
-  var queryString = "INSERT INTO Constraints VALUES ('" + symbol + "','" + price + "','" + time + "','" + isBuy + "');";
+function addConstraint(symbol, price, time, isBuy, expiry){
+  var queryString = "INSERT INTO Constraints VALUES ('" + symbol + "','" + price + "','" + time + "','" 
+    + isBuy + "','" + expiry + "');";
 
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
+    console.log("Added Constraints");
     removeConstraints();
   });
 }
@@ -331,10 +335,12 @@ function removeConstraints(){
   var queryString = "DELETE FROM Constraints WHERE time < " + (d.getTime() - 60000) + ";"
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
+    console.log("Removed Constraints");
     // var next_task = recieved_trades.pop()
     // getConstraints(next_task.symbol, next_task.price, next_task.lots, next_task.isBuy);
   }); 
 }
+
 
 //Set up listening on MoM
 var recieved_trades = []
@@ -362,10 +368,11 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
 				var symbol = Fix.read(message).Symbol;
 				var price = Fix.read(message).Price;
 				var lots = Fix.read(message).OrderQty;
+        var expiry = Fix.read(message).MaturityMonthYear;
 
 				console.log(symbol);
 
-				getConstraints(symbol, parseFloat(price), parseInt(lots), Fix.read(message).Side == "Buy");
+				getConstraints(symbol, parseFloat(price), parseInt(lots), Fix.read(message).Side == "Buy", expiry);
 				
 
 				var reply = "FIX filled message reply - finished";

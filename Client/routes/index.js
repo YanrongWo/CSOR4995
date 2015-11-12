@@ -121,7 +121,7 @@ router.post('/', function (req, res) {
             SendingTime: date.getTime(),
             OrdType: type,
             Symbol: symbol,
-            MaturityMonthYear: expiry,
+            MaturityMonthYear: expiry_month + expiry_year,
             OrderQty: lots,
             Price: price,
             Side: side,

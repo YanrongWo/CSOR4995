@@ -127,53 +127,6 @@ router.post('/', function (req, res) {
   });
 });
 
-var marketprices = {};
-
-function getMarketPrice(symbol) {
-  amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
-  conn.createChannel(function(err, ch) {
-    if (err)
-      console.log(err);
-    var q = 'Exchange';
-    var msg = "MARKETPRICE: "+symbol;
-    ch.assertQueue(q, {durable: false});
-    receiveMarketPrice(symbol);
-    ch.sendToQueue(q, new Buffer(msg), {persistent: true});
-    console.log('Sent to Exchange');
-  });
-  setTimeout(function() { conn.close(); }, 500);
-  });
-}
-
-function receiveMarketPrice(symbol) {
-  var messages = ""
-  amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
-  conn.createChannel(function(err, ch) {
-    if (err)
-      console.log(err);
-    var ex = 'MarketPrice';
-
-    ch.assertExchange(ex, 'topic', {durable: true});
-
-    ch.assertQueue('', {exclusive: true}, function(err, q) {
-      console.log(' [*] Waiting for logss. To exit press CTRL+C');
-      console.log(myUid + ".");
-      ch.bindQueue(q.queue, ex, symbol );
-
-      ch.consume(q.queue, function(msg) {
-        msg = msg.content.toString();
-        console.log(" [x] %s:'%s'", ex, msg);
-        
-        //send msg price to PnL calculation
-        marketprices[symbol] = parseInt(msg);
-
-      }, {noAck: true});
-    });
-  });
-  });
-}
-
-getMarketPrice("HH");
 
 function recieveFills(myUid, res)
 {

@@ -4,6 +4,7 @@ var mysql = require('mysql');
 var loadIndex = require('./loadIndex');
 var amqp = require('amqplib/callback_api');
 var Fix = require('../node_modules/fix/fix.js');
+var cmq = require('../node_modules/clientmq.js')
 var router = express.Router();
 
 var myUid;
@@ -137,7 +138,7 @@ router.post('/', function (req, res) {
             var q = 'Exchange';
             var msg =  fix_message;
             ch.assertQueue(q, {durable: false});
-            recieveFills(myUid, res);
+            recieveFills(myUid, res, req);
             ch.sendToQueue(q, new Buffer(msg), {persistent: true});
             console.log('Sent to Exchange');
           });
@@ -149,8 +150,7 @@ router.post('/', function (req, res) {
   });
 });
 
-
-function recieveFills(myUid, res)
+function recieveFills(myUid, res, req)
 {
   var messages = ""
   amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
@@ -161,20 +161,37 @@ function recieveFills(myUid, res)
 
     ch.assertExchange(ex, 'topic', {durable: true});
 
+    var messageQueue = cmq.getClientMQ(res, function(res, m){
+      loadIndex.loadIndexWithMessage(res, 'Trades captured!', m);
+    });
+
+    var hold = 1;
     ch.assertQueue('', {exclusive: true}, function(err, q) {
       console.log(' [*] Waiting for logs. To exit press CTRL+C');
       console.log(myUid + ".");
       ch.bindQueue(q.queue, ex, String(myUid) );
 
+      var num_of_fills = 0;
+      var num_of_fills_from_exchange = 0;
+
       ch.consume(q.queue, function(msg) {
         console.log(" [x] %s:'%s'", ex, msg.content.toString());
-        messages += msg.content.toString();
-        if (Fix.read(msg.content.toString()).OrdStatus == 3 || Fix.read(msg.content.toString()).OrdStatus == 2)
-        {
-          conn.close();
-          loadIndex.loadIndexWithMessage(res, 'Trade captured!', messages);
+        fix_message = Fix.read(msg.content.toString());
+
+        if (fix_message.NumOfFills != undefined ) {
+          fix_length = fix_message.NumOfFills.length
+          var actual_num_fix = fix_message.NumOfFills.slice(0, fix_length - 2);
+          console.log("length", actual_num_fix);
+          num_of_fills_from_exchange = actual_num_fix;
+          messageQueue.setCapacity(actual_num_fix);
         }
-      }, {noAck: true});
+
+        else {
+          messageQueue.addMessage("Number of lots Purchased: " + fix_message.OrderQty);
+        }
+      
+      }, { noAck: true });
+        
     });
   });
 });

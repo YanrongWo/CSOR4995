@@ -210,13 +210,34 @@ function fillOrder(message){
   //Add the constraint that this offer makes on future offers
   addNewConstraint(symbol, isBuy, fills, expiry);
 
+
+
+
   var largest_trans_time = 0;
   for (i = 0; i < fills.length; i++) {
     if (fills[i][2] > largest_trans_time ){
       largest_trans_time = fills[i][2];
     }
   }
-  var last_fix;
+
+  // Send in the Numb of Fills as first fix message. 
+  var length_fix_message = Fix.message({
+    NumOfFills: fills.length 
+  });
+
+  setTimeout(function() {sendReply(length_fix_message, myUid)}, 250);
+  console.log("I am here: ", length_fix_message);
+
+
+  var last_fix = Fix.message({
+    OrderQty: 0,
+    Price: 0,
+    TransactTime: d.getTime(),
+    OrdStatus: 3
+  });
+
+
+
   // Create FIX for each fill
   for (i = 0; i < fills.length; i++) {
     (function(i) {
@@ -246,7 +267,6 @@ function fillOrder(message){
       } 
       else {
         last_fix = fill_fix_message;
-        console.log("HERE", last_fix);
       }
     })(i);
   }
@@ -441,7 +461,7 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
         //market price request
         var symbol = message.substring(13);
         var price = getMarketPrice(symbol, d.getTime());
-        setTimeout(function() {sendMarketPrice(price, symbol)},250);;
+        setTimeout(function() {sendMarketPrice(price, symbol)}, 500);;
       }
     }, {noAck: false});
   });

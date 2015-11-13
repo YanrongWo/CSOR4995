@@ -75,7 +75,8 @@ block content
 		div(id="bottom")
 			p#fill-title Fill Messages
 			textarea(rows="4", width="80%", id="fills") 
-				#{fills}
+		p(id="msgs")
+			| #{fills}
 	div(class="right")
 		h1.title Create a New User
 		form(name="createNewUser", action="/newUser", method="post", id="createNewUserForm")

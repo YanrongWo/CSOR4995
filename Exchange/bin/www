@@ -150,7 +150,13 @@ where each triple is (lots, price, time)
 @param lots - number of lots to buy/sell
 @param isBuy - if the order to generate fills for is a buy or sell
 */
-function fillOrder(symbol, price, lots, isBuy, expiry){
+function fillOrder(message){
+  var symbol = Fix.read(message).Symbol;
+  var price = parseInt(Fix.read(message).Price);
+  var lots = parseInt(Fix.read(message).OrderQty);
+  var isBuy = Fix.read(message).Side == "Buy";
+  var expiry = Fix.read(message).MaturityMonthYear;
+  var myUid = Fix.read(message).OrderID;
   var filled = false;
   var fills = []
 
@@ -203,6 +209,24 @@ function fillOrder(symbol, price, lots, isBuy, expiry){
   }
   //Add the constraint that this offer makes on future offers
   addNewConstraint(symbol, isBuy, fills, expiry);
+
+  // Create FIX for each fill
+  for (i = 0; i < fills.length; i++) {
+    (function(i) {
+      lots = fills[i][0]
+      price = fills[i][1]
+      transacttime= fills[i][2]
+      console.log(myUid);
+      var fill_fix_message = Fix.message({
+        OrderQty: lots,
+        Price: price,
+        TransactTime: transacttime,
+      }, true);
+
+      var reply = fill_fix_message;
+      setTimeout(function() {sendReply(reply, myUid)},250);; 
+    })(i);
+  }
   return fills;
 }
 
@@ -294,8 +318,13 @@ the database, then fill the trade in the callback
 @param price - price of the next trade to fill
 @param lots - number of lots of the next trade
 @param isBuy - if the next trade is a buy or sell */
-function getConstraints(symbol, price, lots, isBuy, expiry){
-
+function getConstraints(message){
+  var symbol = Fix.read(message).Symbol;
+  var price = parseInt(Fix.read(message).Price);
+  var lots = parseInt(Fix.read(message).OrderQty);
+  var isBuy = Fix.read(message).Side == "Buy"
+  var expiry = Fix.read(message).MaturityMonthYear;
+  var myUid = Fix.read(message).OrderID;
   var queryString = "Select price, time FROM Constraints WHERE isBuy='" + 
     isBuy + "' and symbol='" + symbol + "' and expiry='" + expiry + "';";
 
@@ -304,7 +333,7 @@ function getConstraints(symbol, price, lots, isBuy, expiry){
     console.log("Got Constraints");
     constraints = rows;
     console.log(constraints);
-    var result = fillOrder(symbol, price, lots, isBuy, expiry);
+    var result = fillOrder(message);
     console.log(result);
     return result;
   });
@@ -335,9 +364,7 @@ function removeConstraints(){
   var queryString = "DELETE FROM Constraints WHERE time < " + (d.getTime() - 60000) + ";"
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    console.log("Removed Constraints");
-    var reply = "FIX filled message reply - finished";
-    setTimeout(function() {sendReply(reply)},250);;      
+    console.log("Removed Constraints");    
     if (recieved_trades.length > 0){
       var next_task = recieved_trades.pop();
       processTrade(next_task);
@@ -350,13 +377,8 @@ function removeConstraints(){
 
 function processTrade(message){
   isWorking = true;
-  var symbol = Fix.read(message).Symbol;
-  var price = Fix.read(message).Price;
-  var lots = Fix.read(message).OrderQty;
-  var expiry = Fix.read(message).MaturityMonthYear;
-  console.log(symbol);
           
-  getConstraints(symbol, parseFloat(price), parseInt(lots), Fix.read(message).Side == "Buy", expiry);
+  getConstraints(message);
 }
 
 //Set up listening on MoM
@@ -374,7 +396,7 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
       var message = String(msg.content.toString());
       console.log(" [x] Received %s", message);
       if(message.indexOf("MARKETPRICE: ") === -1) {
-				console.log(message);
+				console.log(Fix.read(message).OrderID);
 
 
 				//Compose reply

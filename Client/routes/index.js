@@ -169,7 +169,7 @@ function recieveFills(myUid, res)
       ch.consume(q.queue, function(msg) {
         console.log(" [x] %s:'%s'", ex, msg.content.toString());
         messages += msg.content.toString();
-        if (messages.indexOf("finish") > -1)
+        if (Fix.read(msg.content.toString()).OrdStatus == 3 || Fix.read(msg.content.toString()).OrdStatus == 2)
         {
           conn.close();
           loadIndex.loadIndexWithMessage(res, 'Trade captured!', messages);

@@ -210,23 +210,48 @@ function fillOrder(message){
   //Add the constraint that this offer makes on future offers
   addNewConstraint(symbol, isBuy, fills, expiry);
 
+  var largest_trans_time = 0;
+  for (i = 0; i < fills.length; i++) {
+    if (fills[i][2] > largest_trans_time ){
+      largest_trans_time = fills[i][2];
+    }
+  }
+  var last_fix;
   // Create FIX for each fill
   for (i = 0; i < fills.length; i++) {
     (function(i) {
-      lots = fills[i][0]
+      fillslots = fills[i][0]
       price = fills[i][1]
       transacttime= fills[i][2]
+      ordstatus = 1; 
+      if (transacttime == largest_trans_time) {
+        console.log("transact time and largest time comparison");
+        if (lots == 0) {
+          ordstatus = 2;
+        }
+        else {
+          ordstatus = 3; 
+        }
+      }
       console.log(myUid);
       var fill_fix_message = Fix.message({
-        OrderQty: lots,
+        OrderQty: fillslots,
         Price: price,
         TransactTime: transacttime,
+        OrdStatus: ordstatus
       }, true);
 
-      var reply = fill_fix_message;
-      setTimeout(function() {sendReply(reply, myUid)},250);; 
+      if (transacttime != largest_trans_time) {
+        setTimeout(function() {sendReply(fill_fix_message, myUid)},250);
+      } 
+      else {
+        last_fix = fill_fix_message;
+        console.log("HERE", last_fix);
+      }
     })(i);
   }
+  console.log("meow", last_fix);
+  setTimeout(function() {sendReply(last_fix, myUid)}, 250);
   return fills;
 }
 

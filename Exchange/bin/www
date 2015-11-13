@@ -157,6 +157,7 @@ function fillOrder(message){
   var isBuy = Fix.read(message).Side == "Buy";
   var expiry = Fix.read(message).MaturityMonthYear;
   var myUid = Fix.read(message).OrderID;
+  var orderType = Fix.read(message).OrdType;
   var filled = false;
   var fills = []
 
@@ -212,7 +213,7 @@ function fillOrder(message){
 
 
 
-
+  // Find final fill 
   var largest_trans_time = 0;
   for (i = 0; i < fills.length; i++) {
     if (fills[i][2] > largest_trans_time ){
@@ -225,6 +226,7 @@ function fillOrder(message){
     NumOfFills: fills.length 
   });
 
+  // Send first fix message which is just the total number of fills
   setTimeout(function() {sendReply(length_fix_message, myUid)}, 250);
   console.log("I am here: ", length_fix_message);
 
@@ -237,7 +239,7 @@ function fillOrder(message){
   });
 
 
-
+  console.log('HELLO KITTY: ', fills);
   // Create FIX for each fill
   for (i = 0; i < fills.length; i++) {
     (function(i) {

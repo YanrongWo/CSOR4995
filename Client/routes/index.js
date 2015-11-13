@@ -116,20 +116,53 @@ router.post('/', function (req, res) {
             });
           }
 
-            // Generate Fix message
-          var fix_message = Fix.message({
-            TransactTime: utcdatetime,
-            SendingTime: date.getTime(),
-            OrdType: type,
-            Symbol: symbol,
-            MaturityMonthYear: expiry_month + expiry_year,
-            OrderQty: lots,
-            Price: price,
-            Side: side,
-            SenderCompID: traderID,
-            OrderID: myUid
-          }, true);
+          // Generate Values 
+          function order_type(type) {
+            if (type == "Market") {
+              return 1
+            }
+            if (type == "Limit") {
+              return 2
+            }
+            if (type =="Pegged"){
+              return "P"
+            }
+          }
+          console.log("Here", type);
+          console.log(order_type(type)); 
 
+          // Generate Fix message
+          var fix_message;
+          if (order_type(type) == 2) {
+            fix_message = Fix.message({
+              TransactTime: utcdatetime,
+              SendingTime: date.getTime(),
+              OrdType: order_type(type),
+              Symbol: symbol,
+              MaturityMonthYear: expiry_month + expiry_year,
+              OrderQty: lots,
+              Price: price,
+              Side: side,
+              SenderCompID: traderID,
+              OrderID: myUid
+            }, true);
+          }
+
+          else {
+            fix_message = Fix.message({
+              TransactTime: utcdatetime,
+              SendingTime: date.getTime(),
+              OrdType: order_type(type),
+              Symbol: symbol,
+              MaturityMonthYear: expiry_month + expiry_year,
+              OrderQty: lots,
+              Side: side,
+              SenderCompID: traderID,
+              OrderID: myUid
+            }, true);
+          }
+
+          console.log("My order:", Fix.read(fix_message).OrdType);
           console.log(fix_message);
 
           conn.createChannel(function(err, ch) {
@@ -187,7 +220,16 @@ function recieveFills(myUid, res, req)
         }
 
         else {
-          messageQueue.addMessage("Number of lots Purchased: " + fix_message.OrderQty);
+          console.log("Printing message: ", fix_message);
+          if (fix_message.OrdType = 1){
+            messageQueue.addMessage("Number of lots Purchased: " + fix_message.OrderQty +
+            ", Price purchased at: " + fix_message.Price + ", Time purchased at: " + fix_message.TransactTime);
+          }
+          else {
+            console.log("I am here")
+            messageQueue.addMessage("Number of lots Purchased: " + fix_message.OrderQty);
+          }
+  
         }
       
       }, { noAck: true });

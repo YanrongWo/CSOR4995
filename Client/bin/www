@@ -7,7 +7,6 @@
 var app = require('../app');
 var debug = require('debug')('TradeCapture:server');
 var http = require('http');
-var fix = require('../node_modules/fix/fix.js');
 
 /**
  * Get port from environment and store in Express.

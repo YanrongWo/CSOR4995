@@ -188,6 +188,11 @@ router.post('/', function (req, res) {
   });
 });
 
+/* Recieves fills from the MoM
+@param myUid - uid of the trade to listen for
+@param res - response to send to the page
+@param req - request from the page
+*/
 function recieveFills(myUid, res, req)
 {
   var messages = ""

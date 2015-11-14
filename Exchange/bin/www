@@ -76,7 +76,11 @@ var constraints = null;
 
 /* Returns random values in a normal distribution 
 using an inverse erf for normal function
-@return - random number between 0 and 1 */
+@param lower_bound - lower_bound of random number
+  with uniform distribution to pass to the erf
+@param upper_bound - upper bound of random number
+  with uniform distribution to pass to erf
+@return - random number between ~3 and -3 */
 function inverse_erf(lower_bound, upper_bound){
   random = Math.random();
   var range = upper_bound - lower_bound;
@@ -116,7 +120,7 @@ function generateOrder(symbol, time, isBuy, isFuture){
     else{
       price = inverse_erf(-1, 0);
     }
-    price = (price * 5) + mean;
+    price = (price * 2) + mean;
   }
   else{
     if (isBuy){
@@ -125,7 +129,7 @@ function generateOrder(symbol, time, isBuy, isFuture){
     else{
       price = inverse_erf(-1, 0.5);
     }
-    price = (price * 5) + mean;
+    price = (price * 2) + mean;
   }
   price = +(price.toFixed(2));
   console.log([lots, price]);
@@ -142,10 +146,7 @@ function getMarketPrice(symbol, time) {
 
 /* Returns a list of fills represented by triples
 where each triple is (lots, price, time)
-@param symbol - symbol of stock to generate orers for
-@param price - price of stock to buy/sell
-@param lots - number of lots to buy/sell
-@param isBuy - if the order to generate fills for is a buy or sell
+@param message - fix message of the trade
 */
 function fillOrder(message){
   var symbol = Fix.read(message).Symbol;
@@ -160,7 +161,6 @@ function fillOrder(message){
   var filled = false;
   var fills = [];
 
-  var num = 0;
   //Generate 10 orders from the last minute
   var currentTime = d.getTime();
   var price;
@@ -174,37 +174,28 @@ function fillOrder(message){
     price = parseInt(Fix.read(message).Price);
   }
   for(var i = 1; i < 11 && lots > 0; i++){
-    num++;
     var time = currentTime - (60000 / 10) * i;
     var generated_order = generateOrder(symbol, time, isBuy, false);
     var fill = checkForFill(symbol, price, lots, isBuy, generated_order)
     if (fill && satisfiesConstraints(fill[1], time, isBuy))
     {
-      console.log("fill1");
-      console.log(fill);
       fill.push(time);
       fills.push(fill);
-      console.log(fills);
       lots -= fill[0];
     }
   }
   //Generated 50 orders from now to the next 30 days
   for (var i = 0; i < 50 && lots > 0; i++){
-    num++;
     var time = currentTime + (Milliseconds30Days / 50) * i;
     var generated_order = generateOrder(symbol, time, isBuy, true);
     if (type == 'P'){
       price = getMarketPrice(symbol, time);
-      console.log("Rona")
     }
     var fill = checkForFill(symbol, price, lots, isBuy, generated_order);
     if (fill && satisfiesConstraints(fill[1], time, isBuy))
-    {  
-      console.log("fill2");
-      console.log(fill);    
+    {   
       fill.push(time);
       fills.push(fill);
-      console.log(fills);
       lots -= fill[0];
     }
     //If a fill was found, generate 10 orders from the next minute 
@@ -212,19 +203,15 @@ function fillOrder(message){
     if ((fill && satisfiesConstraints(fill[1], time, isBuy)) || type != '2'){
       for (var j = 0; j < 10 && lots > 0; j++)
       {
-        num++;
         var inner_time = time + (60000 / 10) * j;
         var generated_order = generateOrder(symbol, inner_time, isBuy, true);
         if (type == 'P'){
           price = getMarketPrice(symbol, time);
         }
         var inner_fill = checkForFill(symbol, price, lots, isBuy, generated_order);
-        if (inner_fill && satisfiesConstraints(inner_fill[1], inner_time, isBuy)){
-            console.log("fill3");
-            console.log(fill);    
+        if (inner_fill && satisfiesConstraints(inner_fill[1], inner_time, isBuy)){    
             inner_fill.push(inner_time)      
             fills.push(inner_fill);
-            console.log(fills);
             lots -= inner_fill[0];
         }    
       } 
@@ -232,8 +219,6 @@ function fillOrder(message){
   }
   //Add the constraint that this offer makes on future offers
   addNewConstraint(symbol, isBuy, fills, expiry);
-
-  console.log(num);
 
   // Find final fill 
   var largest_trans_time = 0;
@@ -250,7 +235,6 @@ function fillOrder(message){
 
   // Send first fix message which is just the total number of fills
   setTimeout(function() {sendReply(length_fix_message, myUid)}, 250);
-  console.log("I am here: ", length_fix_message);
 
 
   var last_fix = Fix.message({
@@ -261,7 +245,6 @@ function fillOrder(message){
   });
 
 
-  console.log('HELLO KITTY: ', fills);
   // Create FIX for each fill
   for (i = 0; i < fills.length; i++) {
     (function(i) {
@@ -270,7 +253,6 @@ function fillOrder(message){
       transacttime= fills[i][2]
       ordstatus = 1; 
       if (transacttime == largest_trans_time) {
-        console.log("transact time and largest time comparison");
         if (lots == 0) {
           ordstatus = 2;
         }
@@ -278,7 +260,6 @@ function fillOrder(message){
           ordstatus = 3; 
         }
       }
-      console.log(myUid);
       var fill_fix_message = Fix.message({
         OrderQty: fillslots,
         Price: price,
@@ -294,7 +275,7 @@ function fillOrder(message){
       }
     })(i);
   }
-  console.log("meow", last_fix);
+  //Send that nothing was filled if no fills = no last fill
   if (!last_fix){
     last_fix = Fix.message({
       OrderQty: 0,
@@ -347,6 +328,7 @@ function addNewConstraint(symbol, isBuy, fills, expiry){
 previous trades
 @price - price of the new fill
 @time - time of the new fill 
+@isBuy - if order is a buy or sell - boolean
 @return - true if the fill satisfies contraints, 
 otherwise false*/
 function satisfiesConstraints(price, time, isBuy){
@@ -396,10 +378,7 @@ var constraints;
 
 /* Get the contraints from previous filled trades from 
 the database, then fill the trade in the callback
-@param symbol - symbol of the next trade to fill
-@param price - price of the next trade to fill
-@param lots - number of lots of the next trade
-@param isBuy - if the next trade is a buy or sell */
+@param message - fix message of order  */
 function getConstraints(message){
   var symbol = Fix.read(message).Symbol;
   var price = parseInt(Fix.read(message).Price);
@@ -480,12 +459,7 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
       if(message.indexOf("MARKETPRICE: ") === -1) {
 				console.log(Fix.read(message).OrderID);
 
-
-				//Compose reply
-				// var myUid = message.split(": ")[1];
-				// console.log(myUid);
-
-				// Get 
+				// See if already processing
         if (!isWorking){
           processTrade(message);
         }
@@ -504,6 +478,9 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
   });
 });
 
+/* Send market price of symbol 
+ @param price - market price to send
+ @param topic - topic of the topic queue to send to*/
 function sendMarketPrice(price, topic) {
   amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
     conn.createChannel(function(err, ch) {
@@ -518,6 +495,10 @@ function sendMarketPrice(price, topic) {
   });
 }
 
+/* Send a reply through the MoM
+@param reply - the message to send
+@param topic - topic of the queue to send to
+*/
 function sendReply(reply, topic)
 {
   amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
@@ -536,7 +517,6 @@ function sendReply(reply, topic)
 /**
  * Normalize a port into a number, string, or false.
  */
-
 function normalizePort(val) {
   var port = parseInt(val, 10);
 

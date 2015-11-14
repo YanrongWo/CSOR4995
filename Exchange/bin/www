@@ -151,6 +151,8 @@ where each triple is (lots, price, time)
 @param isBuy - if the order to generate fills for is a buy or sell
 */
 function fillOrder(message){
+  SOH=01
+  message = message.replace(/\s+/g, '');
   var symbol = Fix.read(message).Symbol;
   var price = parseInt(Fix.read(message).Price);
   var lots = parseInt(Fix.read(message).OrderQty);
@@ -238,8 +240,6 @@ function fillOrder(message){
     OrdStatus: 3
   });
 
-
-  console.log('HELLO KITTY: ', fills);
   // Create FIX for each fill
   for (i = 0; i < fills.length; i++) {
     (function(i) {

@@ -4,7 +4,8 @@ var mysql = require('mysql');
 var loadIndex = require('./loadIndex');
 var amqp = require('amqplib/callback_api');
 var Fix = require('../node_modules/fix/fix.js');
-var cmq = require('../node_modules/clientmq.js')
+var cmq = require('../node_modules/clientmq.js');
+var dateFormat = require('dateformat');
 var router = express.Router();
 
 var myUid;
@@ -116,8 +117,8 @@ router.post('/', function (req, res) {
             });
           }
 
-          // Generate Values 
-          function order_type(type) {
+          // Generate Values for OrderType 
+          function order_type_value(type) {
             if (type == "Market") {
               return 1
             }
@@ -128,35 +129,63 @@ router.post('/', function (req, res) {
               return "P"
             }
           }
-          console.log("Here", type);
-          console.log(order_type(type)); 
+          console.log(" My order type in index.js: ", order_type_value(type)); 
+
+          // Generate Values for side
+          function side_value(side) {
+            if (side == "Buy") {
+              return 1
+            }
+            else {
+              return 2
+            }
+          }
+
+          //Get month in MM format
+          function getMonthFromString(mon){
+            return new Date(Date.parse(mon +" 1, 2012")).getMonth()+1
+          }
+
+          //Generate maturity month and year in YYYYMM format
+          function format_year_month(year, month) {
+            var yyyy = "20" + expiry_year;
+            var mm = getMonthFromString(expiry_month);
+            if(mm < 10) {
+              mm = '0' + mm
+            }
+            return yyyy + mm 
+          }
+
 
           // Generate Fix message
-          var fix_message;
-          if (order_type(type) == 2) {
+          var fix_message;  
+
+          // If Fix message is Limit, generate this: 
+          if (order_type_value(type) == 2) {
             fix_message = Fix.message({
               TransactTime: utcdatetime,
               SendingTime: date.getTime(),
-              OrdType: order_type(type),
+              OrdType: order_type_value(type),
               Symbol: symbol,
-              MaturityMonthYear: expiry_month + expiry_year,
+              MaturityMonthYear: format_year_month(expiry_year, expiry_month),
               OrderQty: lots,
               Price: price,
-              Side: side,
+              Side: side_value(side),
               SenderCompID: traderID,
               OrderID: myUid
             }, true);
           }
 
+          // If Fix messag is pegged, generate this: 
           else {
             fix_message = Fix.message({
               TransactTime: utcdatetime,
               SendingTime: date.getTime(),
-              OrdType: order_type(type),
+              OrdType: order_type_value(type),
               Symbol: symbol,
-              MaturityMonthYear: expiry_month + expiry_year,
+              MaturityMonthYear: format_year_month(expiry_year, expiry_month),
               OrderQty: lots,
-              Side: side,
+              Side: side_value(side),
               SenderCompID: traderID,
               OrderID: myUid
             }, true);
@@ -173,6 +202,7 @@ router.post('/', function (req, res) {
             ch.assertQueue(q, {durable: false});
             recieveFills(myUid, res, req);
             ch.sendToQueue(q, new Buffer(msg), {persistent: true});
+            //loadIndex.loadIndexWithMessage(res, 'Trades captured!', []);
             console.log('Sent to Exchange');
           });
           setTimeout(function() { conn.close(); }, 500);
@@ -194,9 +224,33 @@ function recieveFills(myUid, res, req)
 
     ch.assertExchange(ex, 'topic', {durable: true});
 
-    var messageQueue = cmq.getClientMQ(res, function(res, m){
-      loadIndex.loadIndexWithMessage(res, 'Trades captured!', m);
-    });
+    var messageQueue = cmq.getClientMQ(res, 
+      function(fix_obj){
+        console.log("I work");
+        var connection = mysql.createConnection(
+        {
+          host     : '104.131.22.150',
+          user     : 'rrp',
+          password : 'rrp',
+          database : 'financial',
+        }
+      );
+     
+      connection.connect();
+      var date = dateFormat(new Date(parseInt(fix_obj.TransactTime)), "isoDateTime");
+      var queryString = 'INSERT INTO Fills(lots, fillPrice, fillTime, tradeID)' +
+        ' VALUES('+fix_obj.OrderQty+', '+fix_obj.Price+', "'+date+'", '+myUid+');';
+       console.log(queryString);
+       if(fix_obj.OrderQty > 0){
+          connection.query(queryString, function(err, rows, fields) {
+            console.log(err);
+          });
+        }
+
+      },
+      function(res, m){
+      }
+    );
 
     var hold = 1;
     ch.assertQueue('', {exclusive: true}, function(err, q) {
@@ -209,24 +263,28 @@ function recieveFills(myUid, res, req)
 
       ch.consume(q.queue, function(msg) {
         console.log(" [x] %s:'%s'", ex, msg.content.toString());
-        fix_message = Fix.read(msg.content.toString());
+        fix_str = msg.content.toString().replace(/ /g, "\x01");
+        fix_message = Fix.read(fix_str);
 
         if (fix_message.NumOfFills != undefined ) {
           fix_length = fix_message.NumOfFills.length
-          var actual_num_fix = fix_message.NumOfFills.slice(0, fix_length - 2);
-          console.log("length", actual_num_fix);
-          num_of_fills_from_exchange = actual_num_fix;
-          messageQueue.setCapacity(actual_num_fix);
+          // var actual_num_fix = fix_message.NumOfFills.slice(0, fix_length - 2);
+          // console.log("length", actual_num_fix);
+          // num_of_fills_from_exchange = actual_num_fix;
+          // messageQueue.setCapacity(actual_num_fix);
+          num_of_fills_from_exchange = fix_length;
+          messageQueue.setCapacity(fix_length);
         }
 
         else {
           console.log("Printing message: ", fix_message);
           if (fix_message.OrdType = 1){
-            messageQueue.addMessage("Number of lots Purchased: " + fix_message.OrderQty +
+            messageQueue.addMessage(fix_message, "Number of lots Purchased: " + fix_message.OrderQty +
             ", Price purchased at: " + fix_message.Price + ", Time purchased at: " + fix_message.TransactTime);
           }
           else {
             console.log("I am here")
+
             messageQueue.addMessage("Number of lots Purchased: " + fix_message.OrderQty);
           }
   

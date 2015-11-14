@@ -33,7 +33,6 @@ function loadIndexWithMessage(res, message, trg)
     if(trg != undefined){
       for(i = 0; i < trg.length; i++){
         fillStr += "<p>"+trg[i]+"</p><br/>";
-        //fillStr += trg[i]+"br";
       }
     }
 

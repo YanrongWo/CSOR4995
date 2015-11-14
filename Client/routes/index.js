@@ -115,6 +115,15 @@ router.post('/', function (req, res) {
             });
           }
 
+          if (type == 'Limit'){
+            type = 2
+          }
+          else if (type == 'Market'){
+            type = 1
+          }
+          else{
+            type = 'P'
+          }
             // Generate Fix message
           var fix_message = Fix.message({
             TransactTime: utcdatetime,

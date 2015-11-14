@@ -110,65 +110,6 @@ app.get('/CSVTrades', function (req, res) {
   });
 });
 
-function getDate(date) {
-	var dd = date.getDate();
-	var mm = date.getMonth()+1;
-	var yyyy = date.getFullYear();
-
-	if(dd<10) {
-		dd='0'+dd
-	}
-	if(mm<10) {
-		mm='0'+mm
-	}
-
-	date = mm+'/'+dd+'/'+yyyy;
-	return date;
-}
-
-
-//@Summary: Write daily trades to CSV File
-//@Triggered: GET request sent to domain/CSVDailyTrades
-app.get('/CSVDailyTrades', function (req, res) {
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
-   
-  var queryString = 'SELECT * FROM Trades';
-   
-  connection.query(queryString, function(err, rows, fields) {
-    if (err) throw err;
-
-    res.setHeader('Content-disposition', 'attachment; filename=dailytrades.csv');
-    res.setHeader('Content-type', 'text/csv');
-
-    var toSend = "";
-    for (field in fields){
-      field = fields[field];
-      toSend += field.name + ",";
-    }
-    toSend = toSend.substring(0, toSend.length - 1) + "\n";
-    for (row in rows){
-        row = rows[row];
-        if (getDate(today) == getDate(row.transactionTime)){
-	        toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
-	                  + row.expiry_year + "," + row.lots + "," + row.price + ","
-	                  + row.side + "," + row.traderID + "," + row.transactionTime + "," 
-	                  + row.type + "\n";
-        }
-    }
-    res.send(toSend);
-
-    connection.end();
-  });
-});
     
 
 
@@ -208,13 +149,88 @@ function receiveMarketPrice(symbol) {
         //send msg price to PnL calculation
         marketprices[symbol] = parseInt(msg);
 
+        //send msg to daily trades
+
+
       }, {noAck: true});
     });
   });
   });
 }
-
 getMarketPrice("HH");
+
+function getDate(date) {
+	var dd = date.getDate();
+	var mm = date.getMonth()+1;
+	var yyyy = date.getFullYear();
+
+	if(dd < 10) {
+		dd = '0' + dd
+	}
+	if(mm < 10) {
+		mm = '0' + mm
+	}
+
+	date = mm+'/'+dd+'/'+yyyy;
+	return date;
+}
+
+
+//@Summary: Write daily trades to CSV File
+//@Triggered: GET request sent to domain/CSVDailyTrades
+app.get('/CSVDailyTrades', function (req, res) {
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+ 
+  connection.connect();
+   
+  var queryString = 'SELECT * FROM Trades, Fills WHERE Fills.tradeID = Trades.uid '+
+        'AND DATE(Fills.fillTime) = CURDATE() AND DATE(Trades.transactionTime) = '+ 
+        'DATE(Fills.fillTime)';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+
+    res.setHeader('Content-disposition', 'attachment; filename=dailytrades.csv');
+    res.setHeader('Content-type', 'text/csv');
+
+    var toSend = "";
+    for (field in fields){
+      field = fields[field];
+      toSend += field.name + ",";
+    }
+    toSend = toSend.substring(0, toSend.length - 1) + "\n";
+    for (row in rows){
+        row = rows[row];
+
+          var my_price = null;
+        // Find the trades that are from today
+        	// Find price to display 
+        	if (row.type == "Limit") {
+            // Get tradeIDs corresponding to fills today
+            my_price = row.price;
+        	}
+        	else{
+        		my_price = null;
+        	}
+	        toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
+	                  + row.expiry_year + "," + row.lots + "," + my_price + ","
+	                  + row.side + "," + row.traderID + "," + row.transactionTime + "," 
+	                  + row.type + "," + row.uid + "," + row.lots + "," + row.fillPrice + "," 
+                    + row.fillTime + "," + row.TradeID +"\n";
+        }
+
+    res.send(toSend);
+
+    connection.end();
+  });
+});
 
 var marketprices = {};
 //@Summary: Write PnL By Trades to CSV File

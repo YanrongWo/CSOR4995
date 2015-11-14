@@ -119,18 +119,23 @@ router.post('/', function (req, res) {
           // Generate Values 
           function order_type(type) {
             if (type == "Market") {
-              return 1
+              return 1;
             }
             if (type == "Limit") {
-              return 2
+              return 2;
             }
             if (type =="Pegged"){
-              return "P"
+              return "P";
             }
           }
           console.log("Here", type);
           console.log(order_type(type)); 
 
+          if (side == "Buy"){
+            side = 1;
+          } else if (side == "Sell") {
+            side = 0;
+          }
           // Generate Fix message
           var fix_message;
           if (order_type(type) == 2) {

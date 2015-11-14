@@ -251,7 +251,7 @@ function fillOrder(message){
   });
 
   // Send first fix message which is just the total number of fills
-  setTimeout(function() {sendReply(length_fix_message, myUid)}, 250);
+  sendReply(length_fix_message, myUid);
   console.log("I am here: ", length_fix_message);
 
 

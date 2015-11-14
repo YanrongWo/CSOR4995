@@ -209,17 +209,15 @@ app.get('/CSVDailyTrades', function (req, res) {
     for (row in rows){
         row = rows[row];
 
+          var my_price = null;
         // Find the trades that are from today
         	// Find price to display 
-        	if (row.type == "Market") {
+        	if (row.type == "Limit") {
             // Get tradeIDs corresponding to fills today
-            // 
-        	}
-        	else if(row.type == "Pegged") {
-        	 
+            my_price = row.price;
         	}
         	else{
-        		my_price = row.price;
+        		my_price = null;
         	}
 	        toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
 	                  + row.expiry_year + "," + row.lots + "," + my_price + ","

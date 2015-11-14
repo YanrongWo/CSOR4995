@@ -32,20 +32,16 @@ function loadIndexWithMessage(res, message, trg)
     var fillStr = "";
     if(trg != undefined){
       for(i = 0; i < trg.length; i++){
-        fillStr += "<p>"+trg[i]+"</p><br/>";
+        fillStr += "<p class='msgs'>"+trg[i]+"</p><br/>";
       }
     }
-
+    console.log("fillStr" + fillStr);
     res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
     title: 'Trade Capturer',
     alertScript: message,
     traderScript: JSON.stringify(traders),
     fills: fillStr });
 
-
-
-    // 893=Bob 676=7
-    // fills = "<p>Trader: Bob</p><p>Price: 7</p>""
     connection.end();
 
   });

@@ -272,11 +272,8 @@ function recieveFills(myUid, res, req)
         fix_message = Fix.read(fix_str);
 
         if (fix_message.NumOfFills != undefined ) {
-          fix_length = fix_message.NumOfFills.length
-          // var actual_num_fix = fix_message.NumOfFills.slice(0, fix_length - 2);
-          // console.log("length", actual_num_fix);
-          // num_of_fills_from_exchange = actual_num_fix;
-          // messageQueue.setCapacity(actual_num_fix);
+          fix_length = fix_message.NumOfFills;
+          console.log("calculated number of fills: ", fix_length);
           num_of_fills_from_exchange = fix_length;
           messageQueue.setCapacity(fix_length);
         }

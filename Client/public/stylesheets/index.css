@@ -23,11 +23,18 @@
 	margin-left: 5vw;
 }
 
+#sendCSVDailyTrades{
+	margin-left: 5vw;
+}
+
 #pl-radio {
 	display:inline-block;
 
 }
 
+.msgs{
+	margin-left: 100px;
+}
 #sendCSVPLForm{
 	overflow: auto;
 	margin-left: 5vw;

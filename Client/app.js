@@ -102,7 +102,7 @@ app.get('/CSVTrades', function (req, res) {
         row = rows[row];
         toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
                   + row.expiry_year + "," + row.lots + "," + row.price + ","
-                  + row.type + "," + row.traderID + "," + row.transactionTime + "\n";
+                  + row.side + "," + row.traderID + "," + row.transactionTime + "," + row.type + "\n";
     }
     res.send(toSend);
 
@@ -190,6 +190,7 @@ app.get('/CSVDailyTrades', function (req, res) {
  
   connection.connect();
    
+  // Find the Trades associated to the fills from today
   var queryString = 'SELECT * FROM Trades, Fills WHERE Fills.tradeID = Trades.uid '+
         'AND DATE(Fills.fillTime) = CURDATE() AND DATE(Trades.transactionTime) = '+ 
         'DATE(Fills.fillTime)';
@@ -210,15 +211,16 @@ app.get('/CSVDailyTrades', function (req, res) {
         row = rows[row];
 
           var my_price = null;
-        // Find the trades that are from today
         	// Find price to display 
         	if (row.type == "Limit") {
-            // Get tradeIDs corresponding to fills today
+            // Set price as Client inputed price if type is Limit
             my_price = row.price;
         	}
+          // Market/ Pegged, price is null 
         	else{
         		my_price = null;
         	}
+          // Values that are displayed in the csv
 	        toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
 	                  + row.expiry_year + "," + row.lots + "," + my_price + ","
 	                  + row.side + "," + row.traderID + "," + row.transactionTime + "," 

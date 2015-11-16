@@ -290,12 +290,13 @@ function generateCSVPL(pltype, res, trades) {
 			for(var fill in fills) {
 				fill = fills[fill];
 				if(fill["tradeID"] === trade["uid"]) {
-					total += fill["price"]*fill["lots"];
+					total += fill["fillPrice"]*fill["lots"];
 					fillnum += fill["lots"];
 				}
 			}
 			if(fillnum > 0) {
 				if(trade["side"] === "Sell") {
+					console.log("yoyo"+total);
 					tradesprofit[trade["uid"]] = total;
 					profit += total;
 				}
@@ -407,7 +408,7 @@ app.get('/CSVAggregate', function (req, res) {
 				for(var fill in fills) {
 					fill = fills[fill];
 					if(fill["tradeID"] === trade["uid"]) {
-						total += fill["price"]*fill["lots"];
+						total += fill["fillPrice"]*fill["lots"];
 						fillnum += fill["lots"];
 					}
 				}

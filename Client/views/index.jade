@@ -6,10 +6,9 @@ block content
 		p#underTitle Make a trade by entering your information below
 
 		form(name="makeTrade", action="/", method="post", id="makeTradeForm")
-
-			div(class="dropdown")
+			div(class="form-group")
 				label Symbol
-				select(name="symbol", id="symbolDropdown", ss="form-control") 
+				select(name="symbol", id="symbolDropdown", ss="form-control", class = "form-control") 
 					option(value=LN) LN
 					option(value=NN) NN
 					option(value=NG) NP
@@ -41,13 +40,15 @@ block content
 					option(value=ZR) ZR
 					option(value=E7) E7
 					option(value=AB) AB 
-			div(class="form-group")
+			div(class="radio")
 				label(class="checkbox-inline")
 					input(type="radio", name="transType", value="Market", onclick="hidePrice()")
 					| Market
+			div(class="radio")
 				label(class="checkbox-inline")
 					input(type="radio", name="transType", value="Limit", onclick="showPrice()")
 					| Limit
+			div(class="radio")
 				label(class="checkbox-inline")
 					input(type="radio", name="transType", value="Pegged", onclick="hidePrice()")
 					| Pegged
@@ -60,7 +61,7 @@ block content
 			div(class="form-group")
 				label Lots
 				input(type="number", name="lots", class="form-control")
-			div(class="form-group")
+			div(class="radio")
 				label(class="checkbox-inline")
 					input(type="radio", name="transSide", value="Sell")
 					| Sell
@@ -102,7 +103,8 @@ block content
 		form(name="sendCSVPL", action="/CSVPL", method="get", id="sendCSVPLForm")
 			div(class="form-group")
 				input(type="submit", value="Get CSV PnL", class="btn btn-default")
-			div(class="form-group", id="pl-radio")
+			div(class="form-group")
+				div(class="radio", id="pl-radio")
 					label(class="checkbox-inline")
 						input(type="radio", name="pltype", value="trades")
 						| By Trades
@@ -112,6 +114,9 @@ block content
 					label(class="checkbox-inline")
 						input(type="radio", name="pltype", value="product")
 						| By Product
+		form(name="sendCSVMaturing", action="/CSVMaturing", method="get", id="sendCSVMaturingForm")
+			div(class="form-group")
+				input(type="submit", value= "Get CSV of Trades Maturing Today", class="btn btn-default")
 	
 	script.
 		function sendAlert(msg){

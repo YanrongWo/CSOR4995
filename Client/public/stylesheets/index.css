@@ -47,6 +47,12 @@
 	margin-left: 5vw;
 }
 
+#sendCSVMaturingForm{
+	overflow: auto;
+	width: 20vw;
+	margin-left: 5vw;
+}
+
 #createNewUserForm{
 	width: 25vw;
 	margin-top: 2vw;

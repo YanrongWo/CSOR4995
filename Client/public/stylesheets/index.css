@@ -20,37 +20,37 @@
 #sendCSVTradesForm{
 	overflow: auto;
 	width: 20vw;
-	margin-left: 5vw;
+/*	margin-left: 5vw;*/
 }
 
 #sendCSVDailyTrades{
-	margin-left: 5vw;
+/*	margin-left: 5vw;*/
 }
 
 #pl-radio {
 	display:inline-block;
-
+	margin-left: 2vw;
 }
 
 .msgs{
-	margin-left: 100px;
+
 }
 #sendCSVPLForm{
 	overflow: auto;
-	margin-left: 5vw;
+/*	margin-left: 5vw;*/
 	display:inline-block;
 }
 
 #sendCSVAggregateForm{
 	overflow: auto;
 	width: 20vw;
-	margin-left: 5vw;
+/*	margin-left: 5vw;*/
 }
 
 #sendCSVMaturingForm{
 	overflow: auto;
-	width: 20vw;
-	margin-left: 5vw;
+	width: 30vw;
+/*	margin-left: 5vw;*/
 }
 
 #createNewUserForm{

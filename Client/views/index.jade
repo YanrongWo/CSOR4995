@@ -4,79 +4,130 @@ block content
 	div(class="left")
 		h3.title#welcome Welcome to #{title}
 		p#underTitle Make a trade by entering your information below
-
-		form(name="makeTrade", action="/", method="post", id="makeTradeForm")
-			div(class="form-group")
-				label Symbol
-				select(name="symbol", id="symbolDropdown", ss="form-control", class = "form-control") 
-					option(value=LN) LN
-					option(value=NN) NN
-					option(value=NG) NP
-					option(value=HH) HH
-					option(value=ON) ON
-					option(value=HP) HP
-					option(value=PD) PD
-					option(value=HB) HB
-					option(value=TC) TC
-					option(value=PH) PH
-					option(value=NR) NR
-					option(value=TR) TR
-					option(value=NL) NL
-					option(value="5Z") 5Z
-					option(value=GL) GL
-					option(value=PG) PG
-					option(value=IN) IN
-					option(value=NH) NH
-					option(value="9F") 9F
-					option(value=NW) NW
-					option(value=G4) G4
-					option(value=PW) PW
-					option(value=CI) CI
-					option(value="6J") 6J
-					option(value=NX) NX
-					option(value=NK) NK
-					option(value=CZ) CZ
-					option(value=NJ) NJ
-					option(value=ZR) ZR
-					option(value=E7) E7
-					option(value=AB) AB 
-			div(class="radio")
-				label(class="checkbox-inline")
-					input(type="radio", name="transType", value="Market", onclick="hidePrice()")
-					| Market
-			div(class="radio")
-				label(class="checkbox-inline")
-					input(type="radio", name="transType", value="Limit", onclick="showPrice()")
-					| Limit
-			div(class="radio")
-				label(class="checkbox-inline")
-					input(type="radio", name="transType", value="Pegged", onclick="hidePrice()")
-					| Pegged
-			div(class="form-group", id="limitPrice")
-				label Limit Price
-				input(type="text", name="price", class="form-control")
-			div(class="form-group")
-				label Expiry
-				input(type="text", name="expiry", class="form-control")
-			div(class="form-group")
-				label Lots
-				input(type="number", name="lots", class="form-control")
-			div(class="radio")
-				label(class="checkbox-inline")
-					input(type="radio", name="transSide", value="Sell")
-					| Sell
-				label(class="checkbox-inline")
-					input(type="radio", name="transSide", value="Buy")
-					| Buy
-			div(class="form-group")
-				label Trader 
-				select(name="trader", id="traderDropdown", class="form-control")
-			div(class="form-group")
-				input(type="submit", value="Submit", class="btn btn-default", style="margin-top:2vw")
-			div(class="form-group", id="bottom", style="margin-top:2vw")
-				label Fill Messages:
-				p(id="msgs")
-				!{fills}
+		
+		div(class="form-group", id="enterTrades")
+			input(type="submit", value="Commodity Trades", class="btn btn-primary", onclick="hide('toggle2'), toggle_visibility('toggle1')", id="enterTradesButtons")
+			input(type="submit", value="Interest Rate Swaps", class="btn btn-primary", onclick="hide('toggle1'), toggle_visibility('toggle2')", id="enterTradesButtons")
+		div(class="form-group", id="toggle1", style="display:none;")
+			form(name="makeTrade", action="/", method="post", id="makeTradeForm")
+				div(class="form-group")
+					label Symbol
+					select(name="symbol", id="symbolDropdown", ss="form-control", class = "form-control") 
+						option(value=LN) LN
+						option(value=NN) NN
+						option(value=NG) NP
+						option(value=HH) HH
+						option(value=ON) ON
+						option(value=HP) HP
+						option(value=PD) PD
+						option(value=HB) HB
+						option(value=TC) TC
+						option(value=PH) PH
+						option(value=NR) NR
+						option(value=TR) TR
+						option(value=NL) NL
+						option(value="5Z") 5Z
+						option(value=GL) GL
+						option(value=PG) PG
+						option(value=IN) IN
+						option(value=NH) NH
+						option(value="9F") 9F
+						option(value=NW) NW
+						option(value=G4) G4
+						option(value=PW) PW
+						option(value=CI) CI
+						option(value="6J") 6J
+						option(value=NX) NX
+						option(value=NK) NK
+						option(value=CZ) CZ
+						option(value=NJ) NJ
+						option(value=ZR) ZR
+						option(value=E7) E7
+						option(value=AB) AB 
+				div(class="radio")
+					label(class="checkbox-inline")
+						input(type="radio", name="transType", value="Market", onclick="hidePrice()")
+						| Market
+				div(class="radio")
+					label(class="checkbox-inline")
+						input(type="radio", name="transType", value="Limit", onclick="showPrice()")
+						| Limit
+				div(class="radio")
+					label(class="checkbox-inline")
+						input(type="radio", name="transType", value="Pegged", onclick="hidePrice()")
+						| Pegged
+				div(class="form-group", id="limitPrice")
+					label Limit Price
+					input(type="text", name="price", class="form-control")
+				div(class="form-group")
+					label Expiry
+					input(type="text", name="expiry", class="form-control")
+				div(class="form-group")
+					label Lots
+					input(type="number", name="lots", class="form-control")
+				div(class="radio")
+					label(class="checkbox-inline")
+						input(type="radio", name="transSide", value="Sell")
+						| Sell
+					label(class="checkbox-inline")
+						input(type="radio", name="transSide", value="Buy")
+						| Buy
+				div(class="form-group")
+					label Trader 
+					select(name="trader", id="traderDropdown", class="form-control")
+				div(class="form-group")
+					input(type="submit", value="Submit", class="btn btn-default")
+				div(class="form-group", id="bottom", style="margin-top:2vw")
+					label Fill Messages:
+					p(id="msgs")
+					!{fills}
+			
+		div(class="form-group", id="toggle2", style="display:none;")
+			form(name="interestRateSwaps", action="/interestRateSwap", method="post", id="interestRateSwaps")
+				div(class="form-group")
+					label Start Date
+					input(type="date", name="startDate", class="form-control")
+				div(class="form-group")
+					label Termination Date
+					input(type="date", name="terminationDate", class="form-control")
+				div(class="form-group")
+					label Floating Rate (%)
+					input(type="text", name="floatingRate", class="form-control")
+				div(class="form-group")
+					label Spread on Floating Rate
+					input(type="text", name="spreadOnFloatingRate", class="form-control")
+				div(class="form-group")
+					label Fixed Rate (%)
+					input(type="text", name="fixedRate", class="form-control")
+				div(class="form-group")
+					label Trader 
+					select(name="trader", id="traderDropdown2", class="form-control")
+				div(class="form-group")
+					label Fixed paid by:
+					div(class="radio", id="fixed-float-radio")
+						label(class="checkbox-inline")
+							input(type="radio", name="whoPaysFixed", value="Me")
+							| Trader
+						label(class="checkbox-inline")
+							input(type="radio", name="whoPaysFixed", value="CME")
+							| CME
+						label(class="checkbox-inline")
+							input(type="radio", name="whoPaysFixed", value="LCH")
+							| LCH
+				div(class="form-group")
+					label Float paid by:
+					div(class="radio", id="fixed-float-radio")
+						label(class="checkbox-inline")
+							input(type="radio", name="whoPaysFloat", value="Me")
+							| Trader
+						label(class="checkbox-inline")
+							input(type="radio", name="whoPaysFloat", value="CME")
+							| CME
+						label(class="checkbox-inline")
+							input(type="radio", name="whoPaysFloat", value="LCH")
+							| LCH
+				div(class="form-group")
+					input(type="submit", value="Submit", id="submitSwap", class="btn btn-default")
 	div(class="right")
 		h3.title Create a New User
 		form(name="createNewUser", action="/newUser", method="post", id="createNewUserForm")
@@ -130,6 +181,7 @@ block content
 		function populateTraders(traders)
 		{
 			var select = document.getElementById("traderDropdown");
+			var select2 = document.getElementById("traderDropdown2");
 
 			for (trader in traders)
 			{
@@ -138,6 +190,7 @@ block content
 				el.textContent = trader;
 				el.value = trader.split("-")[0];
 				select.appendChild(el);
+				select2.appendChild(el);
 			}
 		}
 
@@ -150,6 +203,22 @@ block content
 		function hidePrice(){
 			document.getElementById("limitPrice").style.display = "none";
 		}
+
+		function toggle_visibility(id){
+			var e = document.getElementById(id);
+			if(e.style.display == 'block')
+				e.style.display = 'none';
+			else
+				e.style.display = 'block';
+		}
+
+		function hide(id){
+			document.getElementById(id).style.display = "none";
+		}
+
+
+
+
 
 
 

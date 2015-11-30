@@ -10,11 +10,33 @@
 	width: 50%;
 }
 
+#enterTrades{
+	margin-left: 10vw;
+	margin-top: 2vw;
+	margin-bottom:2vw;
+}
+
+#enterTradesButtons{
+	margin-left: 1vw;
+}
+
 #makeTradeForm{
 	width: 20vw;
 	margin: 10vw;
 	margin-top: 2vw;
 	margin-bottom:5vw;
+}
+
+#interestRateSwaps{
+	width: 20vw;
+	margin: 10vw;
+	margin-top: 2vw;
+	margin-bottom:5vw;
+}
+
+#fixed-float-radio{
+	display:inline-block;
+	margin-left: 2vw;
 }
 
 #sendCSVTradesForm{

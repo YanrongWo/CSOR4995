@@ -35,7 +35,7 @@ router.post('/', function (req, res) {
 
   //Check if form is completely filled
   if (!symbol || !expiry || !lots ||  !side || !traderID || !type){
-    loadIndex.loadIndexWithMessage(res, 'All values must be filled in.', "")
+    loadIndex.loadIndexWithMessage(res, 'All values must be filled in.', "");
     return;
   }
 

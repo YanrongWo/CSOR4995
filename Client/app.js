@@ -34,9 +34,9 @@ app.post('/interestRateSwap', function (req, res) {
   var utcdatetime = moment.utc().format('YYYY-MM-DD HH:mm:ss');
   var startdate = req.body.startDate;
   var terminationdate = req.body.terminationDate;
-  var floating = req.body.floatingRate / 100;
+  var floating = req.body.floatingRate;
   var spread = req.body.spreadOnFloatingRate;
-  var fixed = req.body.fixedRate / 100;
+  var fixed = req.body.fixedRate;
   var traderID = req.body.trader;
   var whopaysfixed = req.body.whoPaysFixed;
   var whopaysfloat = req.body.whoPaysFloat;
@@ -47,9 +47,14 @@ app.post('/interestRateSwap', function (req, res) {
     return;
   }
 
-  console.log("I am here: ", startdate);
-  console.log("Floating rate: ", floating)
+  var queryString = "INSERT INTO Swaps VALUES ('" + startdate + "','" +  terminationdate 
+    + "','" + floating + "','" + spread + "','" + fixed + "','" + whopaysfixed + "','" 
+    + whopaysfloat + "','" + traderID + "','" + utcdatetime + "');";
 
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+    loadIndex.loadIndexWithMessage(res, 'Interest Rate Swap Captured!', "")
+  });
 });
 
 var connection = mysql.createConnection(
@@ -449,21 +454,8 @@ app.get('/Eod', function(req, res){
     var eod = rows[0].eod;
     var daystoAdd = 1;
 
-    var tomorrow;
-    var isWeekend = true;
-    while (isWeekend){
-      tomorrow = eod.addDays(daystoAdd);
-      if (tomorrow.getDay() == 0){
-        daystoAdd += 1;
-      }
-      else if (tomorrow.getDay() == 6){
-        daystoAdd += 1;
-      }
-      else {
-        isWeekend = false;
-      }
-    }
-    tomorrow = eod.addDays(daystoAdd);
+    daystoAdd = updateDaysPastWeekend(daystoAdd, eod, 1);
+    var tomorrow = eod.addDays(daystoAdd);
     var day = tomorrow.getDate();
     var month = tomorrow.getMonth() + 1;
     var year = tomorrow.getFullYear();
@@ -491,19 +483,7 @@ app.get('/Eod', function(req, res){
             }
           }
         }
-        isWeekend = true;
-        while (isWeekend){
-          tomorrow = eod.addDays(daystoAdd);
-          if (tomorrow.getDay() == 0){
-            daystoAdd += 1;
-          }
-          else if (tomorrow.getDay() == 6){
-            daystoAdd += 1;
-          }
-          else{
-            isWeekend = false;
-          }
-        }
+        daystoAdd = updateDaysPastWeekend(daystoAdd, eod, 1);
         queryString = "UPDATE EOD set eod=(DATE_ADD(eod, INTERVAL " + daystoAdd.toString() + " DAY));"
         connection.query(queryString, function(err, rows, fields) {
           if (err) throw err;
@@ -519,8 +499,153 @@ app.get('/Eod', function(req, res){
   });
 });
 
-function isHoliday(day, month, year){
+app.post('/tradesMaturingToday', function (req, res){
+  var current = new Date();
+  var month = current.getMonth();
+  var year = current.getFullYear();
+  var expireDate = new Date(year, month, 1, 0, 0, 0, 0);
+  var daysToAdd = -1;
+  daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+  var previous = expireDate.addDays(daystoAdd);
+  var day = previous.getDate();
+  var month = previous.getMonth() + 1;
+  var year = previous.getFullYear();
+  var url = "http://holidayapi.com/v1/holidays?country=US&year=" + year.toString() 
+    + "&month=" + month.toString() + "&day=" + day;
+  var request = http.get(url, function (response) {  
+    var buffer = "", 
+        data,
+        route;
 
+    response.on("data", function (chunk) {
+        buffer += chunk;
+    }); 
+
+    response.on("end", function (err) {
+      data = JSON.parse(buffer);
+      holidays = data.holidays;
+      actual_holidays = ["New Year's Day", "Martin Luther King, Jr. Day", "Washington's Birthday", "Good Friday",
+        "Memorial Day", "Independence Day", "Labor Day", "Thanksgiving Day", "Christmas"];
+      for (var i in holidays){
+        for (var j in actual_holidays){
+          if (holidays[i].name == actual_holidays[j]){
+            daystoAdd -= 1
+          }
+        }
+      }
+      daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+      daysToAdd -= 1;
+      daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+      var previous = expireDate.addDays(daystoAdd);
+      var day = previous.getDate();
+      var month = previous.getMonth() + 1;
+      var year = previous.getFullYear();
+      var url = "http://holidayapi.com/v1/holidays?country=US&year=" + year.toString() 
+        + "&month=" + month.toString() + "&day=" + day;
+      var request = http.get(url, function (response) {  
+        var buffer = "", 
+            data,
+            route;
+
+        response.on("data", function (chunk) {
+            buffer += chunk;
+        }); 
+
+        response.on("end", function (err) {
+          data = JSON.parse(buffer);
+          holidays = data.holidays;
+          actual_holidays = ["New Year's Day", "Martin Luther King, Jr. Day", "Washington's Birthday", "Good Friday",
+            "Memorial Day", "Independence Day", "Labor Day", "Thanksgiving Day", "Christmas"];
+          for (var i in holidays){
+            for (var j in actual_holidays){
+              if (holidays[i].name == actual_holidays[j]){
+                daystoAdd -= 1
+              }
+            }
+          }
+          daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+          daysToAdd -= 1;
+          daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+          var previous = expireDate.addDays(daystoAdd);
+          var day = previous.getDate();
+          var month = previous.getMonth() + 1;
+          var year = previous.getFullYear();
+          var url = "http://holidayapi.com/v1/holidays?country=US&year=" + year.toString() 
+            + "&month=" + month.toString() + "&day=" + day;
+          var request = http.get(url, function (response) {  
+            var buffer = "", 
+                data,
+                route;
+
+            response.on("data", function (chunk) {
+                buffer += chunk;
+            }); 
+
+            response.on("end", function (err) {
+              data = JSON.parse(buffer);
+              holidays = data.holidays;
+              actual_holidays = ["New Year's Day", "Martin Luther King, Jr. Day", "Washington's Birthday", "Good Friday",
+                "Memorial Day", "Independence Day", "Labor Day", "Thanksgiving Day", "Christmas"];
+              for (var i in holidays){
+                for (var j in actual_holidays){
+                  if (holidays[i].name == actual_holidays[j]){
+                    daystoAdd -= 1
+                  }
+                }
+              }
+              daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+              previous = expireDate.addDays(daystoAdd);
+              if (current.getDate() === previous.getDate()){
+                var months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEPT", "OCT", "NOV", "DEC"];
+                month = months[current.getMonth];
+                year = current.getFullYear().toString().substring(2);
+                queryString = "SELECT * FROM Trades WHERE expiry_month=" + month + " AND expiry_year=" 
+                + year + ";"
+                connection.query(queryString, function(err, rows, fields) {
+                  if (err) throw err;
+
+                  res.setHeader('Content-disposition', 'attachment; filename=trades.csv');
+                  res.setHeader('Content-type', 'text/csv');
+
+                  var toSend = "";
+                  for (field in fields){
+                    field = fields[field];
+                    toSend += field.name + ",";
+                  }
+                  toSend = toSend.substring(0, toSend.length - 1) + "\n";
+                  for (row in rows){
+                      row = rows[row];
+                      toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
+                                + row.expiry_year + "," + row.lots + "," + row.price + ","
+                                + row.side + "," + row.traderID + "," + row.transactionTime + "," + row.type + "\n";
+                  }
+                  res.send(toSend);
+
+                });
+              }
+            });
+          });
+        });
+      });
+    });
+  });
+}
+
+function updateDaysPastWeekend(daysToAdd, currentTime, numDays){
+  var isWeekend = true;
+  while (isWeekend){
+    var newTime = currentTime.addDays(daystoAdd);
+    if (newTime.getDay() == 0){
+      daystoAdd += numDays;
+    }
+    else if (newTime.getDay() == 6){
+      daystoAdd += numDays;
+    }
+    else{
+      isWeekend = false;
+    }
+  }
+  return daysToAdd;
 }
 
 Date.prototype.addDays = function(days)

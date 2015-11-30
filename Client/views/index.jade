@@ -2,7 +2,7 @@ extends layout
 
 block content
 	div(class="left")
-		h1.title#welcome Welcome to #{title}
+		h3.title#welcome Welcome to #{title}
 		p#underTitle Make a trade by entering your information below
 
 		form(name="makeTrade", action="/", method="post", id="makeTradeForm")
@@ -72,14 +72,13 @@ block content
 				label Trader 
 				select(name="trader", id="traderDropdown", class="form-control")
 			div(class="form-group")
-				input(type="submit", value="Submit", class="btn btn-default", style="float:right; margin-top:2vw")
-		div(id="bottom")
-			div()
-			p#fill-title Fill Messages
+				input(type="submit", value="Submit", class="btn btn-default", style="margin-top:2vw")
+			div(class="form-group", id="bottom", style="margin-top:2vw")
+				label Fill Messages:
 				p(id="msgs")
-					!{fills}
+				!{fills}
 	div(class="right")
-		h1.title Create a New User
+		h3.title Create a New User
 		form(name="createNewUser", action="/newUser", method="post", id="createNewUserForm")
 			div(class="form-group")
 				label First Name
@@ -88,8 +87,8 @@ block content
 				label Last Name
 				input(type="text", name="last", class="form-control")
 			div(class="form-group")
-				input(type="submit", value="Create New Trader", class="btn btn-default", style="float:right; margin-top:2vw")
-		h1.title Create CSV Files
+				input(type="submit", value="Create New Trader", class="btn btn-default", style="margin-top:2vw")
+		h3.title Create CSV Files
 		form(name="sendCSVTrades", action="/CSVTrades", method="get", id="sendCSVTradesForm")
 			div(class="form-group")
 				input(type="submit", value="Get CSV Trades", class="btn btn-default")

@@ -452,7 +452,29 @@ app.get('/CSVAggregate', function (req, res) {
 //@Triggered: GET request sent to domain/CSVSwaps
 app.get('/CSVSwaps', function (req, res) {
 
-  //TODO
+  var queryString = 'SELECT * FROM Swaps';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+
+    res.setHeader('Content-disposition', 'attachment; filename=swaps.csv');
+    res.setHeader('Content-type', 'text/csv');
+
+    var toSend = "";
+    for (field in fields){
+      field = fields[field];
+      toSend += field.name + ",";
+    }
+    toSend = toSend.substring(0, toSend.length - 1) + "\n";
+    for (row in rows){
+        row = rows[row];
+        toSend += row.start + "," + row.termination + "," + row.floatingRate + ","
+                  + row.spread + "," + row.fixedRate + "," + row.fixedPayer + ","
+                  + row.floatPayer + "," + row.uid + "," + row.transactionTime + "\n";
+    }
+    res.send(toSend);
+
+  });
 
 });
 
@@ -460,7 +482,6 @@ app.get('/CSVSwaps', function (req, res) {
 //@Triggered: GET request sent to domain/CSVDailySwaps
 app.get('/CSVDailySwaps', function (req, res) {
 
-  //TODO
 
 });
 
@@ -470,7 +491,6 @@ app.get('/CSVDailySwaps', function (req, res) {
 app.get('/CSVAggregateSwaps', function (req, res) {
 
 
-  //TODO
 });
 
 //@Summary: Write PnL By Trades to CSV File

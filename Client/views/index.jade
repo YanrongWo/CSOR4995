@@ -141,7 +141,6 @@ block content
 				input(type="submit", value="Create New Trader", class="btn btn-default", style="margin-top:2vw")
 
 		h3.title Create CSV Files
-
 		div(class="form-group", id="getCSV")
 			input(type="submit", value="CSV for Commodity Trades", class="btn btn-info", onclick="hide('toggle4'), toggle_visibility('toggle3')", id="getCSVButtons")
 			input(type="submit", value="CSV for Interest Rate Swaps", class="btn btn-success", onclick="hide('toggle3'), toggle_visibility('toggle4')", id="getCSVButtons")
@@ -201,6 +200,10 @@ block content
 			form(name="sendCSVMaturingSwaps", action="/CSVMaturingSwaps", method="get", id="sendCSVMaturingSwapsForm")
 				div(class="form-group")
 					input(type="submit", value= "Get CSV of Trades Maturing Today", class="btn btn-success")
+		h1.title EOD
+		form(name="eod", action="/Eod", method="get", id="eod")
+			div(class="form-group")
+				input(type="submit", value="EOD", class="btn btn-default")
 	
 	script.
 		function sendAlert(msg){

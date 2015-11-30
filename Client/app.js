@@ -4,7 +4,7 @@ var path = require('path');
 var bodyParser = require('body-parser');
 var favicon = require('serve-favicon');
 var mysql = require('mysql');
-
+var http = require("http");
 var loadIndex = require('./routes/loadIndex');
 var routes = require('./routes/index');
 var users = require('./routes/users');
@@ -34,9 +34,9 @@ app.post('/interestRateSwap', function (req, res) {
   var utcdatetime = moment.utc().format('YYYY-MM-DD HH:mm:ss');
   var startdate = req.body.startDate;
   var terminationdate = req.body.terminationDate;
-  var floating = req.body.floatingRate / 100;
+  var floating = req.body.floatingRate;
   var spread = req.body.spreadOnFloatingRate;
-  var fixed = req.body.fixedRate / 100;
+  var fixed = req.body.fixedRate;
   var traderID = req.body.trader;
   var whopaysfixed = req.body.whoPaysFixed;
   var whopaysfloat = req.body.whoPaysFloat;
@@ -47,10 +47,26 @@ app.post('/interestRateSwap', function (req, res) {
     return;
   }
 
-  console.log("I am here: ", startdate);
-  console.log("Floating rate: ", floating)
+  var queryString = "INSERT INTO Swaps VALUES ('" + startdate + "','" +  terminationdate 
+    + "','" + floating + "','" + spread + "','" + fixed + "','" + whopaysfixed + "','" 
+    + whopaysfloat + "','" + traderID + "','" + utcdatetime + "');";
 
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+    loadIndex.loadIndexWithMessage(res, 'Interest Rate Swap Captured!', "")
+  });
 });
+
+var connection = mysql.createConnection(
+  {
+    host     : '104.131.22.150',
+    user     : 'rrp',
+    password : 'rrp',
+    database : 'financial',
+  }
+);
+
+connection.connect();
 
 //@Summary: Redirect to home page if not post request
 //@Triggered: GET request sent to domain/newUser
@@ -69,17 +85,6 @@ app.post('/newUser', function(req, res){
   {
       loadIndex.loadIndexWithMessage(res, "Must provide both first and last name.", "")
   }
-  //Connect and insert value into database
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
 
   var queryString = 'INSERT INTO Trader VALUES (NULL,"' + first + '", "' + last + '");';
 
@@ -89,7 +94,6 @@ app.post('/newUser', function(req, res){
     queryString = "SELECT LAST_INSERT_ID();"
     connection.query(queryString, function(err, rows, fields) {
       if (err) throw err;
-      connection.end();
       loadIndex.loadIndexWithMessage(res, 'Success! Your userID is ' + rows[0]['LAST_INSERT_ID()'] + ".", "");
     });
   });
@@ -98,16 +102,6 @@ app.post('/newUser', function(req, res){
 //@Summary: Write Trades to CSV File
 //@Triggered: GET request sent to domain/CSVTrades
 app.get('/CSVTrades', function (req, res) {
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
    
   var queryString = 'SELECT * FROM Trades';
    
@@ -131,7 +125,6 @@ app.get('/CSVTrades', function (req, res) {
     }
     res.send(toSend);
 
-    connection.end();
   });
 });
 
@@ -182,7 +175,6 @@ function receiveMarketPrice(symbol) {
   });
   });
 }
-getMarketPrice("HH");
 
 function getDate(date) {
 	var dd = date.getDate();
@@ -204,16 +196,6 @@ function getDate(date) {
 //@Summary: Write daily trades to CSV File
 //@Triggered: GET request sent to domain/CSVDailyTrades
 app.get('/CSVDailyTrades', function (req, res) {
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
    
   // Find the Trades associated to the fills from today
   var queryString = 'SELECT * FROM Trades, Fills WHERE Fills.tradeID = Trades.uid '+
@@ -255,7 +237,6 @@ app.get('/CSVDailyTrades', function (req, res) {
 
     res.send(toSend);
 
-    connection.end();
   });
 });
 
@@ -268,17 +249,6 @@ app.get('/CSVPL', function (req, res) {
 		res.send("ERROR");
 		return 0;
 	}
-
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
    
   var queryString = 'SELECT * FROM Trades';
    
@@ -295,7 +265,6 @@ app.get('/CSVPL', function (req, res) {
 				}
 			}
 		setTimeout(function() {generateCSVPL(pltype, res, rows); }, 500);
-    connection.end();
   });
 });
 
@@ -306,18 +275,6 @@ function generateCSVPL(pltype, res, trades) {
 			return 0;
 		}
 	}
-	console.log("ALL HERE!");
-
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
 
 	queryString = 'SELECT * FROM Fills';
 	connection.query(queryString, function(err2, fills, fields) {  
@@ -419,16 +376,6 @@ function generateCSVPL(pltype, res, trades) {
 //@Summary: Write Aggregate Position to CSV File
 //@Triggered: GET request sent to domain/CSVAggregate
 app.get('/CSVAggregate', function (req, res) {
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
    
   var queryString = 'SELECT * FROM Trades';
   connection.query(queryString, function(err, trades, fields) {
@@ -497,7 +444,6 @@ app.get('/CSVAggregate', function (req, res) {
 			res.send(toSend);
 		});
 
-    connection.end();
   });
 });
 
@@ -505,14 +451,6 @@ app.get('/CSVAggregate', function (req, res) {
 //@Summary: Write Swaps to CSV File
 //@Triggered: GET request sent to domain/CSVSwaps
 app.get('/CSVSwaps', function (req, res) {
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
 
   //TODO
 
@@ -522,13 +460,6 @@ app.get('/CSVSwaps', function (req, res) {
 //@Triggered: GET request sent to domain/CSVDailySwaps
 app.get('/CSVDailySwaps', function (req, res) {
   var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
 
   //TODO
 
@@ -539,13 +470,7 @@ app.get('/CSVDailySwaps', function (req, res) {
 //@Triggered: GET request sent to domain/CSVAggregateSwaps
 app.get('/CSVAggregateSwaps', function (req, res) {
   var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
+
 
   //TODO
 });
@@ -559,17 +484,217 @@ app.get('/CSVPLSwaps', function (req, res) {
     return 0;
   }
 
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
 
   //TODO
 });
+
+app.get('/Eod', function(req, res){
+  queryString = "Select * from EOD;";
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+    var eod = rows[0].eod;
+    var daystoAdd = 1;
+
+    daystoAdd = updateDaysPastWeekend(daystoAdd, eod, 1);
+    var tomorrow = eod.addDays(daystoAdd);
+    var day = tomorrow.getDate();
+    var month = tomorrow.getMonth() + 1;
+    var year = tomorrow.getFullYear();
+    var url = "http://holidayapi.com/v1/holidays?country=US&year=" + year.toString() 
+      + "&month=" + month.toString() + "&day=" + day;
+    var request = http.get(url, function (response) {  
+      var buffer = "", 
+          data,
+          route;
+
+      response.on("data", function (chunk) {
+          buffer += chunk;
+      }); 
+
+      response.on("end", function (err) {
+        data = JSON.parse(buffer);
+        holidays = data.holidays;
+        actual_holidays = ["New Year's Day", "Martin Luther King, Jr. Day", "Washington's Birthday", "Good Friday",
+          "Memorial Day", "Independence Day", "Labor Day", "Thanksgiving Day", "Christmas"];
+        for (var i in holidays){
+          for (var j in actual_holidays){
+            if (holidays[i].name == actual_holidays[j]){
+              console.log("matched");
+              daystoAdd += 1
+            }
+          }
+        }
+        daystoAdd = updateDaysPastWeekend(daystoAdd, eod, 1);
+        queryString = "UPDATE EOD set eod=(DATE_ADD(eod, INTERVAL " + daystoAdd.toString() + " DAY));"
+        connection.query(queryString, function(err, rows, fields) {
+          if (err) throw err;
+          queryString = "Select * from EOD;";
+          connection.query(queryString, function(err, rows, fields) {
+            if (err) throw err;
+            eod = rows[0].eod;
+            loadIndex.loadIndexWithMessage(res, 'EOD updated to: ' + eod);
+          });
+        });
+      }); 
+    }); 
+  });
+});
+
+app.post('/tradesMaturingToday', function (req, res){
+  var current = new Date();
+  var month = current.getMonth();
+  var year = current.getFullYear();
+  var expireDate = new Date(year, month, 1, 0, 0, 0, 0);
+  var daysToAdd = -1;
+  daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+  var previous = expireDate.addDays(daystoAdd);
+  var day = previous.getDate();
+  var month = previous.getMonth() + 1;
+  var year = previous.getFullYear();
+  var url = "http://holidayapi.com/v1/holidays?country=US&year=" + year.toString() 
+    + "&month=" + month.toString() + "&day=" + day;
+  var request = http.get(url, function (response) {  
+    var buffer = "", 
+        data,
+        route;
+
+    response.on("data", function (chunk) {
+        buffer += chunk;
+    }); 
+
+    response.on("end", function (err) {
+      data = JSON.parse(buffer);
+      holidays = data.holidays;
+      actual_holidays = ["New Year's Day", "Martin Luther King, Jr. Day", "Washington's Birthday", "Good Friday",
+        "Memorial Day", "Independence Day", "Labor Day", "Thanksgiving Day", "Christmas"];
+      for (var i in holidays){
+        for (var j in actual_holidays){
+          if (holidays[i].name == actual_holidays[j]){
+            daystoAdd -= 1
+          }
+        }
+      }
+      daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+      daysToAdd -= 1;
+      daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+      var previous = expireDate.addDays(daystoAdd);
+      var day = previous.getDate();
+      var month = previous.getMonth() + 1;
+      var year = previous.getFullYear();
+      var url = "http://holidayapi.com/v1/holidays?country=US&year=" + year.toString() 
+        + "&month=" + month.toString() + "&day=" + day;
+      var request = http.get(url, function (response) {  
+        var buffer = "", 
+            data,
+            route;
+
+        response.on("data", function (chunk) {
+            buffer += chunk;
+        }); 
+
+        response.on("end", function (err) {
+          data = JSON.parse(buffer);
+          holidays = data.holidays;
+          actual_holidays = ["New Year's Day", "Martin Luther King, Jr. Day", "Washington's Birthday", "Good Friday",
+            "Memorial Day", "Independence Day", "Labor Day", "Thanksgiving Day", "Christmas"];
+          for (var i in holidays){
+            for (var j in actual_holidays){
+              if (holidays[i].name == actual_holidays[j]){
+                daystoAdd -= 1
+              }
+            }
+          }
+          daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+          daysToAdd -= 1;
+          daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+          var previous = expireDate.addDays(daystoAdd);
+          var day = previous.getDate();
+          var month = previous.getMonth() + 1;
+          var year = previous.getFullYear();
+          var url = "http://holidayapi.com/v1/holidays?country=US&year=" + year.toString() 
+            + "&month=" + month.toString() + "&day=" + day;
+          var request = http.get(url, function (response) {  
+            var buffer = "", 
+                data,
+                route;
+
+            response.on("data", function (chunk) {
+                buffer += chunk;
+            }); 
+
+            response.on("end", function (err) {
+              data = JSON.parse(buffer);
+              holidays = data.holidays;
+              actual_holidays = ["New Year's Day", "Martin Luther King, Jr. Day", "Washington's Birthday", "Good Friday",
+                "Memorial Day", "Independence Day", "Labor Day", "Thanksgiving Day", "Christmas"];
+              for (var i in holidays){
+                for (var j in actual_holidays){
+                  if (holidays[i].name == actual_holidays[j]){
+                    daystoAdd -= 1
+                  }
+                }
+              }
+              daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
+              previous = expireDate.addDays(daystoAdd);
+              if (current.getDate() === previous.getDate()){
+                var months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEPT", "OCT", "NOV", "DEC"];
+                month = months[current.getMonth];
+                year = current.getFullYear().toString().substring(2);
+                queryString = "SELECT * FROM Trades WHERE expiry_month=" + month + " AND expiry_year=" 
+                + year + ";"
+                connection.query(queryString, function(err, rows, fields) {
+                  if (err) throw err;
+
+                  res.setHeader('Content-disposition', 'attachment; filename=trades.csv');
+                  res.setHeader('Content-type', 'text/csv');
+
+                  var toSend = "";
+                  for (field in fields){
+                    field = fields[field];
+                    toSend += field.name + ",";
+                  }
+                  toSend = toSend.substring(0, toSend.length - 1) + "\n";
+                  for (row in rows){
+                      row = rows[row];
+                      toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
+                                + row.expiry_year + "," + row.lots + "," + row.price + ","
+                                + row.side + "," + row.traderID + "," + row.transactionTime + "," + row.type + "\n";
+                  }
+                  res.send(toSend);
+
+                });
+              }
+            });
+          });
+        });
+      });
+    });
+  });
+}
+
+function updateDaysPastWeekend(daysToAdd, currentTime, numDays){
+  var isWeekend = true;
+  while (isWeekend){
+    var newTime = currentTime.addDays(daystoAdd);
+    if (newTime.getDay() == 0){
+      daystoAdd += numDays;
+    }
+    else if (newTime.getDay() == 6){
+      daystoAdd += numDays;
+    }
+    else{
+      isWeekend = false;
+    }
+  }
+  return daysToAdd;
+}
+
+Date.prototype.addDays = function(days)
+{
+    var dat = new Date(this.valueOf());
+    dat.setDate(dat.getDate() + days);
+    return dat;
+}
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -601,6 +726,25 @@ app.use(function(err, req, res, next) {
     error: {}
   });
 });
+
+
+process.stdin.resume();//so the program will not close instantly
+
+function exitHandler(options, err) {
+    connection.end();
+    if (options.cleanup) console.log('clean');
+    if (err) console.log(err.stack);
+    if (options.exit) process.exit();
+}
+
+//do something when app is closing
+process.on('exit', exitHandler.bind(null,{cleanup:true}));
+
+//catches ctrl+c event
+process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+
+//catches uncaught exceptions
+process.on('uncaughtException', exitHandler.bind(null, {exit:true}));
 
 
 module.exports = app;

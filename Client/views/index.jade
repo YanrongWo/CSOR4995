@@ -6,8 +6,8 @@ block content
 		p#underTitle Make a trade by entering your information below
 		
 		div(class="form-group", id="enterTrades")
-			input(type="submit", value="Commodity Trades", class="btn btn-primary", onclick="hide('toggle2'), toggle_visibility('toggle1')", id="enterTradesButtons")
-			input(type="submit", value="Interest Rate Swaps", class="btn btn-primary", onclick="hide('toggle1'), toggle_visibility('toggle2')", id="enterTradesButtons")
+			input(type="submit", value="Commodity Trades", class="btn btn-info", onclick="hide('toggle2'), toggle_visibility('toggle1')", id="enterTradesButtons")
+			input(type="submit", value="Interest Rate Swaps", class="btn btn-success", onclick="hide('toggle1'), toggle_visibility('toggle2')", id="enterTradesButtons")
 		div(class="form-group", id="toggle1", style="display:none;")
 			form(name="makeTrade", action="/", method="post", id="makeTradeForm")
 				div(class="form-group")
@@ -139,34 +139,68 @@ block content
 				input(type="text", name="last", class="form-control")
 			div(class="form-group")
 				input(type="submit", value="Create New Trader", class="btn btn-default", style="margin-top:2vw")
+
 		h3.title Create CSV Files
-		form(name="sendCSVTrades", action="/CSVTrades", method="get", id="sendCSVTradesForm")
-			div(class="form-group")
-				input(type="submit", value="Get CSV Trades", class="btn btn-default")
-		
-		form(name="sendCSVDaily", action="/CSVDailyTrades", method="get", id="sendCSVDailyTrades")
-			div(class="form-group")
-				input(type="submit", value="Get CSV of Daily Trades", class="btn btn-default")
-		form(name="sendCSVAggregate", action="/CSVAggregate", method="get", id="sendCSVAggregateForm")
-			div(class="form-group")
-				input(type="submit", value="Get CSV Aggregate", class="btn btn-default")
-		form(name="sendCSVPL", action="/CSVPL", method="get", id="sendCSVPLForm")
-			div(class="form-group")
-				input(type="submit", value="Get CSV PnL", class="btn btn-default")
-			div(class="form-group")
-				div(class="radio", id="pl-radio")
-					label(class="checkbox-inline")
-						input(type="radio", name="pltype", value="trades")
-						| By Trades
-					label(class="checkbox-inline")
-						input(type="radio", name="pltype", value="trader")
-						| By Trader
-					label(class="checkbox-inline")
-						input(type="radio", name="pltype", value="product")
-						| By Product
-		form(name="sendCSVMaturing", action="/CSVMaturing", method="get", id="sendCSVMaturingForm")
-			div(class="form-group")
-				input(type="submit", value= "Get CSV of Trades Maturing Today", class="btn btn-default")
+
+		div(class="form-group", id="getCSV")
+			input(type="submit", value="CSV for Commodity Trades", class="btn btn-info", onclick="hide('toggle4'), toggle_visibility('toggle3')", id="getCSVButtons")
+			input(type="submit", value="CSV for Interest Rate Swaps", class="btn btn-success", onclick="hide('toggle3'), toggle_visibility('toggle4')", id="getCSVButtons")
+
+		div(class="form-group", id="toggle3", style="display:none;")
+			form(name="sendCSVTrades", action="/CSVTrades", method="get", id="sendCSVTradesForm")
+				div(class="form-group")
+					input(type="submit", value="Get CSV Trades", class="btn btn-info")
+			form(name="sendCSVDaily", action="/CSVDailyTrades", method="get", id="sendCSVDailyTrades")
+				div(class="form-group")
+					input(type="submit", value="Get CSV of Daily Trades", class="btn btn-info")
+			form(name="sendCSVAggregate", action="/CSVAggregate", method="get", id="sendCSVAggregateForm")
+				div(class="form-group")
+					input(type="submit", value="Get CSV Aggregate", class="btn btn-info")
+			form(name="sendCSVPL", action="/CSVPL", method="get", id="sendCSVPLForm")
+				div(class="form-group")
+					input(type="submit", value="Get CSV PnL", class="btn btn-info")
+				div(class="form-group")
+					div(class="radio", id="pl-radio")
+						label(class="checkbox-inline")
+							input(type="radio", name="pltype", value="trades")
+							| By Trades
+						label(class="checkbox-inline")
+							input(type="radio", name="pltype", value="trader")
+							| By Trader
+						label(class="checkbox-inline")
+							input(type="radio", name="pltype", value="product")
+							| By Product
+			form(name="sendCSVMaturing", action="/CSVMaturing", method="get", id="sendCSVMaturingForm")
+				div(class="form-group")
+					input(type="submit", value= "Get CSV of Trades Maturing Today", class="btn btn-info")
+
+		div(class="form-group", id="toggle4", style="display:none;")
+			form(name="sendCSVSwaps", action="/CSVSwaps", method="get", id="sendCSVSwapsForm")
+				div(class="form-group")
+					input(type="submit", value="Get CSV Swaps", class="btn btn-success")
+			form(name="sendCSVDailySwaps", action="/CSVDailySwaps", method="get", id="sendCSVDailySwaps")
+				div(class="form-group")
+					input(type="submit", value="Get CSV of Daily Swaps", class="btn btn-success")
+			form(name="sendCSVAggregateSwaps", action="/CSVAggregateSwaps", method="get", id="sendCSVAggregateSwapsForm")
+				div(class="form-group")
+					input(type="submit", value="Get CSV Aggregate", class="btn btn-success")
+			form(name="sendCSVPLSwaps", action="/CSVPLSwaps", method="get", id="sendCSVPLSwapsForm")
+				div(class="form-group")
+					input(type="submit", value="Get CSV PnL", class="btn btn-success")
+				div(class="form-group")
+					div(class="radio", id="pl-radio")
+						label(class="checkbox-inline")
+							input(type="radio", name="pltype", value="trades")
+							| By Trades
+						label(class="checkbox-inline")
+							input(type="radio", name="pltype", value="trader")
+							| By Trader
+						label(class="checkbox-inline")
+							input(type="radio", name="pltype", value="product")
+							| By Product	
+			form(name="sendCSVMaturingSwaps", action="/CSVMaturingSwaps", method="get", id="sendCSVMaturingSwapsForm")
+				div(class="form-group")
+					input(type="submit", value= "Get CSV of Trades Maturing Today", class="btn btn-success")
 	
 	script.
 		function sendAlert(msg){

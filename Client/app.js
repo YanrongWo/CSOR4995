@@ -501,6 +501,76 @@ app.get('/CSVAggregate', function (req, res) {
   });
 });
 
+
+//@Summary: Write Swaps to CSV File
+//@Triggered: GET request sent to domain/CSVSwaps
+app.get('/CSVSwaps', function (req, res) {
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+
+  //TODO
+
+});
+
+//@Summary: Write daily Swaps to CSV File
+//@Triggered: GET request sent to domain/CSVDailySwaps
+app.get('/CSVDailySwaps', function (req, res) {
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+
+  //TODO
+
+});
+
+
+//@Summary: Write Aggregate Position to CSV File
+//@Triggered: GET request sent to domain/CSVAggregateSwaps
+app.get('/CSVAggregateSwaps', function (req, res) {
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+
+  //TODO
+});
+
+//@Summary: Write PnL By Trades to CSV File
+//@Triggered: GET request sent to domain/CSVPL
+app.get('/CSVPLSwaps', function (req, res) {
+  var pltype = req.query["pltype"];
+  if(pltype !== "trades" && pltype !== "trader" && pltype !== "product") {
+    res.send("ERROR");
+    return 0;
+  }
+
+  var connection = mysql.createConnection(
+    {
+      host     : '104.131.22.150',
+      user     : 'rrp',
+      password : 'rrp',
+      database : 'financial',
+    }
+  );
+
+  //TODO
+});
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   var err = new Error('Not Found');

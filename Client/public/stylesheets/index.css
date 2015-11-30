@@ -16,9 +16,10 @@
 	margin-bottom:2vw;
 }
 
-#enterTradesButtons{
-	margin-left: 1vw;
+#enterTradesButtons, #getCSVButtons{
+	margin-right: 1vw;
 }
+
 
 #makeTradeForm{
 	width: 20vw;

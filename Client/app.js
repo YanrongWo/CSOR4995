@@ -1,4 +1,5 @@
 var express = require('express');
+var moment = require('moment');
 var path = require('path');
 var bodyParser = require('body-parser');
 var favicon = require('serve-favicon');
@@ -26,6 +27,30 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', routes);
 app.use('/users', users);
 
+//@Summary: 
+//@Triggered: POST request sent from domain/interestRateSwap
+app.post('/interestRateSwap', function (req, res) {
+  // Values from field and date received
+  var utcdatetime = moment.utc().format('YYYY-MM-DD HH:mm:ss');
+  var startdate = req.body.startDate;
+  var terminationdate = req.body.terminationDate;
+  var floating = req.body.floatingRate / 100;
+  var spread = req.body.spreadOnFloatingRate;
+  var fixed = req.body.fixedRate / 100;
+  var traderID = req.body.trader;
+  var whopaysfixed = req.body.whoPaysFixed;
+  var whopaysfloat = req.body.whoPaysFloat;
+
+  //Check if form is completely filled
+  if (!startdate || !terminationdate || !floating ||  !spread || !fixed || !whopaysfixed || !whopaysfloat){
+    loadIndex.loadIndexWithMessage(res, 'All values must be filled in.', "")
+    return;
+  }
+
+  console.log("I am here: ", startdate);
+  console.log("Floating rate: ", floating)
+
+});
 
 var connection = mysql.createConnection(
   {

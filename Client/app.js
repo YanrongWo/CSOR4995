@@ -3,7 +3,7 @@ var path = require('path');
 var bodyParser = require('body-parser');
 var favicon = require('serve-favicon');
 var mysql = require('mysql');
-
+var http = require("http");
 var loadIndex = require('./routes/loadIndex');
 var routes = require('./routes/index');
 var users = require('./routes/users');
@@ -27,6 +27,17 @@ app.use('/', routes);
 app.use('/users', users);
 
 
+var connection = mysql.createConnection(
+  {
+    host     : '104.131.22.150',
+    user     : 'rrp',
+    password : 'rrp',
+    database : 'financial',
+  }
+);
+
+connection.connect();
+
 //@Summary: Redirect to home page if not post request
 //@Triggered: GET request sent to domain/newUser
 app.get('/newUser', function(req, res){
@@ -44,17 +55,6 @@ app.post('/newUser', function(req, res){
   {
       loadIndex.loadIndexWithMessage(res, "Must provide both first and last name.", "")
   }
-  //Connect and insert value into database
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
 
   var queryString = 'INSERT INTO Trader VALUES (NULL,"' + first + '", "' + last + '");';
 
@@ -64,7 +64,6 @@ app.post('/newUser', function(req, res){
     queryString = "SELECT LAST_INSERT_ID();"
     connection.query(queryString, function(err, rows, fields) {
       if (err) throw err;
-      connection.end();
       loadIndex.loadIndexWithMessage(res, 'Success! Your userID is ' + rows[0]['LAST_INSERT_ID()'] + ".", "");
     });
   });
@@ -73,16 +72,6 @@ app.post('/newUser', function(req, res){
 //@Summary: Write Trades to CSV File
 //@Triggered: GET request sent to domain/CSVTrades
 app.get('/CSVTrades', function (req, res) {
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
    
   var queryString = 'SELECT * FROM Trades';
    
@@ -106,7 +95,6 @@ app.get('/CSVTrades', function (req, res) {
     }
     res.send(toSend);
 
-    connection.end();
   });
 });
 
@@ -157,7 +145,6 @@ function receiveMarketPrice(symbol) {
   });
   });
 }
-getMarketPrice("HH");
 
 function getDate(date) {
 	var dd = date.getDate();
@@ -179,16 +166,6 @@ function getDate(date) {
 //@Summary: Write daily trades to CSV File
 //@Triggered: GET request sent to domain/CSVDailyTrades
 app.get('/CSVDailyTrades', function (req, res) {
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
    
   // Find the Trades associated to the fills from today
   var queryString = 'SELECT * FROM Trades, Fills WHERE Fills.tradeID = Trades.uid '+
@@ -230,7 +207,6 @@ app.get('/CSVDailyTrades', function (req, res) {
 
     res.send(toSend);
 
-    connection.end();
   });
 });
 
@@ -243,17 +219,6 @@ app.get('/CSVPL', function (req, res) {
 		res.send("ERROR");
 		return 0;
 	}
-
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
    
   var queryString = 'SELECT * FROM Trades';
    
@@ -270,7 +235,6 @@ app.get('/CSVPL', function (req, res) {
 				}
 			}
 		setTimeout(function() {generateCSVPL(pltype, res, rows); }, 500);
-    connection.end();
   });
 });
 
@@ -281,18 +245,6 @@ function generateCSVPL(pltype, res, trades) {
 			return 0;
 		}
 	}
-	console.log("ALL HERE!");
-
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
 
 	queryString = 'SELECT * FROM Fills';
 	connection.query(queryString, function(err2, fills, fields) {  
@@ -394,16 +346,6 @@ function generateCSVPL(pltype, res, trades) {
 //@Summary: Write Aggregate Position to CSV File
 //@Triggered: GET request sent to domain/CSVAggregate
 app.get('/CSVAggregate', function (req, res) {
-  var connection = mysql.createConnection(
-    {
-      host     : '104.131.22.150',
-      user     : 'rrp',
-      password : 'rrp',
-      database : 'financial',
-    }
-  );
- 
-  connection.connect();
    
   var queryString = 'SELECT * FROM Trades';
   connection.query(queryString, function(err, trades, fields) {
@@ -472,9 +414,96 @@ app.get('/CSVAggregate', function (req, res) {
 			res.send(toSend);
 		});
 
-    connection.end();
   });
 });
+
+app.get('/Eod', function(req, res){
+  queryString = "Select * from EOD;";
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+    var eod = rows[0].eod;
+    var daystoAdd = 1;
+
+    var tomorrow;
+    var isWeekend = true;
+    while (isWeekend){
+      tomorrow = eod.addDays(daystoAdd);
+      if (tomorrow.getDay() == 0){
+        daystoAdd += 1;
+      }
+      else if (tomorrow.getDay() == 6){
+        daystoAdd += 1;
+      }
+      else {
+        isWeekend = false;
+      }
+    }
+    tomorrow = eod.addDays(daystoAdd);
+    var day = tomorrow.getDate();
+    var month = tomorrow.getMonth() + 1;
+    var year = tomorrow.getFullYear();
+    var url = "http://holidayapi.com/v1/holidays?country=US&year=" + year.toString() 
+      + "&month=" + month.toString() + "&day=" + day;
+    var request = http.get(url, function (response) {  
+      var buffer = "", 
+          data,
+          route;
+
+      response.on("data", function (chunk) {
+          buffer += chunk;
+      }); 
+
+      response.on("end", function (err) {
+        data = JSON.parse(buffer);
+        holidays = data.holidays;
+        actual_holidays = ["New Year's Day", "Martin Luther King, Jr. Day", "Washington's Birthday", "Good Friday",
+          "Memorial Day", "Independence Day", "Labor Day", "Thanksgiving Day", "Christmas"];
+        for (var i in holidays){
+          for (var j in actual_holidays){
+            if (holidays[i].name == actual_holidays[j]){
+              console.log("matched");
+              daystoAdd += 1
+            }
+          }
+        }
+        isWeekend = true;
+        while (isWeekend){
+          tomorrow = eod.addDays(daystoAdd);
+          if (tomorrow.getDay() == 0){
+            daystoAdd += 1;
+          }
+          else if (tomorrow.getDay() == 6){
+            daystoAdd += 1;
+          }
+          else{
+            isWeekend = false;
+          }
+        }
+        queryString = "UPDATE EOD set eod=(DATE_ADD(eod, INTERVAL " + daystoAdd.toString() + " DAY));"
+        connection.query(queryString, function(err, rows, fields) {
+          if (err) throw err;
+          queryString = "Select * from EOD;";
+          connection.query(queryString, function(err, rows, fields) {
+            if (err) throw err;
+            eod = rows[0].eod;
+            loadIndex.loadIndexWithMessage(res, 'EOD updated to: ' + eod);
+          });
+        });
+      }); 
+    }); 
+  });
+});
+
+function isHoliday(day, month, year){
+
+}
+
+Date.prototype.addDays = function(days)
+{
+    var dat = new Date(this.valueOf());
+    dat.setDate(dat.getDate() + days);
+    return dat;
+}
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -506,6 +535,25 @@ app.use(function(err, req, res, next) {
     error: {}
   });
 });
+
+
+process.stdin.resume();//so the program will not close instantly
+
+function exitHandler(options, err) {
+    connection.end();
+    if (options.cleanup) console.log('clean');
+    if (err) console.log(err.stack);
+    if (options.exit) process.exit();
+}
+
+//do something when app is closing
+process.on('exit', exitHandler.bind(null,{cleanup:true}));
+
+//catches ctrl+c event
+process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+
+//catches uncaught exceptions
+process.on('uncaughtException', exitHandler.bind(null, {exit:true}));
 
 
 module.exports = app;

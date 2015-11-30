@@ -117,6 +117,10 @@ block content
 		form(name="sendCSVMaturing", action="/CSVMaturing", method="get", id="sendCSVMaturingForm")
 			div(class="form-group")
 				input(type="submit", value= "Get CSV of Trades Maturing Today", class="btn btn-default")
+		h1.title EOD
+		form(name="eod", action="/Eod", method="get", id="eod")
+			div(class="form-group")
+				input(type="submit", value="EOD", class="btn btn-default")
 	
 	script.
 		function sendAlert(msg){

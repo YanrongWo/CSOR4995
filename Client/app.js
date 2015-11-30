@@ -459,7 +459,6 @@ app.get('/CSVSwaps', function (req, res) {
 //@Summary: Write daily Swaps to CSV File
 //@Triggered: GET request sent to domain/CSVDailySwaps
 app.get('/CSVDailySwaps', function (req, res) {
-  var connection = mysql.createConnection(
 
   //TODO
 
@@ -469,7 +468,6 @@ app.get('/CSVDailySwaps', function (req, res) {
 //@Summary: Write Aggregate Position to CSV File
 //@Triggered: GET request sent to domain/CSVAggregateSwaps
 app.get('/CSVAggregateSwaps', function (req, res) {
-  var connection = mysql.createConnection(
 
 
   //TODO
@@ -540,12 +538,12 @@ app.get('/Eod', function(req, res){
   });
 });
 
-app.post('/tradesMaturingToday', function (req, res){
+app.get('/CSVMaturing', function (req, res){
   var current = new Date();
   var month = current.getMonth();
   var year = current.getFullYear();
   var expireDate = new Date(year, month, 1, 0, 0, 0, 0);
-  var daysToAdd = -1;
+  var daystoAdd = -1;
   daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
   var previous = expireDate.addDays(daystoAdd);
   var day = previous.getDate();
@@ -575,7 +573,7 @@ app.post('/tradesMaturingToday', function (req, res){
         }
       }
       daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
-      daysToAdd -= 1;
+      daystoAdd -= 1;
       daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
       var previous = expireDate.addDays(daystoAdd);
       var day = previous.getDate();
@@ -605,7 +603,7 @@ app.post('/tradesMaturingToday', function (req, res){
             }
           }
           daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
-          daysToAdd -= 1;
+          daystoAdd -= 1;
           daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
           var previous = expireDate.addDays(daystoAdd);
           var day = previous.getDate();
@@ -644,8 +642,7 @@ app.post('/tradesMaturingToday', function (req, res){
                 + year + ";"
                 connection.query(queryString, function(err, rows, fields) {
                   if (err) throw err;
-
-                  res.setHeader('Content-disposition', 'attachment; filename=trades.csv');
+                  res.setHeader('Content-disposition', 'attachment; filename=marturingtrades.csv');
                   res.setHeader('Content-type', 'text/csv');
 
                   var toSend = "";
@@ -664,15 +661,32 @@ app.post('/tradesMaturingToday', function (req, res){
 
                 });
               }
+              else {
+                queryString = "SELECT * FROM Trades Limit 1;"
+                connection.query(queryString, function(err, rows, fields) {
+                  if (err) throw err;
+                  res.setHeader('Content-disposition', 'attachment; filename=marturingtrades.csv');
+                  res.setHeader('Content-type', 'text/csv');
+
+                  var toSend = "";
+                  for (field in fields){
+                    field = fields[field];
+                    toSend += field.name + ",";
+                  }
+                  toSend = toSend.substring(0, toSend.length - 1) + "\n";
+                  res.send(toSend);
+
+                });
+              }
             });
           });
         });
       });
     });
   });
-}
+});
 
-function updateDaysPastWeekend(daysToAdd, currentTime, numDays){
+function updateDaysPastWeekend(daystoAdd, currentTime, numDays){
   var isWeekend = true;
   while (isWeekend){
     var newTime = currentTime.addDays(daystoAdd);
@@ -686,7 +700,7 @@ function updateDaysPastWeekend(daysToAdd, currentTime, numDays){
       isWeekend = false;
     }
   }
-  return daysToAdd;
+  return daystoAdd;
 }
 
 Date.prototype.addDays = function(days)

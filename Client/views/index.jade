@@ -226,8 +226,11 @@ block content
 				var el = document.createElement("option");
 				el.textContent = trader;
 				el.value = trader.split("-")[0];
+				var el2 = document.createElement("option");
+				el2.textContent = trader;
+				el2.value = trader.split("-")[0];
 				select.appendChild(el);
-				select2.appendChild(el);
+				select2.appendChild(el2);
 			}
 		}
 

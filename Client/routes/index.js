@@ -93,10 +93,13 @@ router.post('/', function (req, res) {
   connection.connect();
 
   //Insert into trade database
-  connection.query('INSERT INTO Trades VALUES (NULL, "' + symbol + '","' + expiry_month + '","' + expiry_year + '","' + lots + '","' +
-    price + '","' + side + '","' + traderID + '","' + utcdatetime + '","' + type + '");', function(err, rows, fields) {
+  connection.query('INSERT INTO Trades VALUES (NULL, "' + symbol + '","' + lots + '","' +
+    price + '","' + side + '","' + traderID + '","' + utcdatetime + '","' + type + '", "ongoing", "'  
+    + expiry_month + '","' + expiry_year + '");', function(err, rows, fields) {
       if (err){
         loadIndex.loadIndexWithMessage(res, 'Error accessing database. Try again later.', "");
+        throw err;
+        return;
       } 
         //Get uid of trade
         queryString = "SELECT LAST_INSERT_ID();"

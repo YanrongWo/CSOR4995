@@ -27,7 +27,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', routes);
 app.use('/users', users);
 
-//@Summary: 
+//@Summary: Inserts value from form on interest Rate Swap page into database
 //@Triggered: POST request sent from domain/interestRateSwap
 app.post('/interestRateSwap', function (req, res) {
   // Values from field and date received
@@ -40,6 +40,7 @@ app.post('/interestRateSwap', function (req, res) {
   var traderID = req.body.trader;
   var whopaysfixed = req.body.whoPaysFixed;
   var whopaysfloat = req.body.whoPaysFloat;
+  var status = 'ongoing';
 
   //Check if form is completely filled
   if (!startdate || !terminationdate || !floating ||  !spread || !fixed || !whopaysfixed || !whopaysfloat){
@@ -49,7 +50,7 @@ app.post('/interestRateSwap', function (req, res) {
 
   var queryString = "INSERT INTO Swaps VALUES ('" + startdate + "','" +  terminationdate 
     + "','" + floating + "','" + spread + "','" + fixed + "','" + whopaysfixed + "','" 
-    + whopaysfloat + "','" + traderID + "','" + utcdatetime + "');";
+    + whopaysfloat + "','" + traderID + "','" + utcdatetime + "','" + status + "');";
 
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
@@ -470,7 +471,8 @@ app.get('/CSVSwaps', function (req, res) {
         row = rows[row];
         toSend += row.start + "," + row.termination + "," + row.floatingRate + ","
                   + row.spread + "," + row.fixedRate + "," + row.fixedPayer + ","
-                  + row.floatPayer + "," + row.uid + "," + row.transactionTime + "\n";
+                  + row.floatPayer + "," + row.uid + "," + row.transactionTime + "," 
+                  + row.status + "\n";
     }
     res.send(toSend);
 
@@ -482,14 +484,55 @@ app.get('/CSVSwaps', function (req, res) {
 //@Triggered: GET request sent to domain/CSVDailySwaps
 app.get('/CSVDailySwaps', function (req, res) {
 
+  // Find the Trades associated to the fills from today
+  var queryString = 'SELECT * FROM Swaps';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
 
+    res.setHeader('Content-disposition', 'attachment; filename=dailyswaps.csv');
+    res.setHeader('Content-type', 'text/csv');
+
+    var utcdate = moment.utc().format('YYYY-MM-DD');
+    console.log("transdate: ", utcdate)
+    var toSend = "";
+    for (field in fields){
+      field = fields[field];
+      toSend += field.name + ",";
+    }
+    toSend = toSend.substring(0, toSend.length - 1) + "\n";
+    for (row in rows){
+        row = rows[row];
+        swapdate = row.transactionTime.getFullYear() + "-" 
+                  + parseFloat(row.transactionTime.getMonth() + 1 )+ "-" 
+                  + swapday(row.transactionTime);
+        console.log("transdate: ", row.transactionTime)
+        console.log("Date Format: ", swapdate)
+        if (utcdate == swapdate) {
+          toSend += row.start + "," + row.termination + "," + row.floatingRate + ","
+                  + row.spread + "," + row.fixedRate + "," + row.fixedPayer + ","
+                  + row.floatPayer + "," + row.uid + "," + row.transactionTime + "," 
+                  + row.status + "\n";
+        }
+    }
+    res.send(toSend);
+
+  });
 });
 
+// Function to change the format of transition date. Used in DailySwaps.
+function swapday(time){
+  if (time.getDate() < 10) { 
+    return '0' + time.getDate()
+  }
+  else 
+    return time.getDate()
+}
 
 //@Summary: Write Aggregate Position to CSV File
 //@Triggered: GET request sent to domain/CSVAggregateSwaps
 app.get('/CSVAggregateSwaps', function (req, res) {
-
+//TODO
 
 });
 

@@ -117,14 +117,14 @@ block content
 				div(class="form-group")
 					label Float paid by:
 					div(class="radio", id="fixed-float-radio")
-						label(class="checkbox-inline" id="float1")
-							input(type="radio", name="whoPaysFloat", value="Me",)
+						label(class="checkbox-inline")
+							input(type="radio", name="whoPaysFloat", value="Me", id="float1")
 							| Trader
-						label(class="checkbox-inline", id="float2")
-							input(type="radio", name="whoPaysFloat", value="CME")
+						label(class="checkbox-inline")
+							input(type="radio", name="whoPaysFloat", value="CME", id="float2")
 							| CME
-						label(class="checkbox-inline", id="float3")
-							input(type="radio", name="whoPaysFloat", value="LCH")
+						label(class="checkbox-inline")
+							input(type="radio", name="whoPaysFloat", value="LCH", id="float3")
 							| LCH
 				div(class="form-group")
 					input(type="submit", value="Submit", id="submitSwap", class="btn btn-default")

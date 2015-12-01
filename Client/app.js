@@ -550,6 +550,8 @@ app.get('/Eod', function(req, res){
           connection.query(queryString, function(err, rows, fields) {
             if (err) throw err;
             eod = rows[0].eod;
+            updateMaturingTrades(eod);
+            //updateMaturingSwaps(eod);
             loadIndex.loadIndexWithMessage(res, 'EOD updated to: ' + eod);
           });
         });
@@ -558,10 +560,28 @@ app.get('/Eod', function(req, res){
   });
 });
 
-app.get('/CSVMaturing', function (req, res){
-  var current = new Date();
-  var month = current.getMonth();
-  var year = current.getFullYear();
+function updateMaturingSwaps(eod){
+  var month = eod.getMonth();
+  var year = eod.getFullYear();
+  var day = eod.getDate();
+  var queryString = "update Swaps SET status='matured' where (YEAR(termination) < " + year 
+    + ") OR (YEAR(termination) = " + year + " and MONTH(termination) < " + month + 
+    ") OR (YEAR(termination) = " + year + " and MONTH(termination) = " + month + 
+    " and DAY(termination) < " + day + ");"
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+    queryString = "update Swaps SET status='maturing' where (YEAR(termination) = " + 
+      year + " and MONTH(termination) = " + month + 
+      " and DAY(termination) = " + day + ");"
+    connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+    });
+  });
+}
+
+function updateMaturingTrades(eod){
+  var month = eod.getMonth();
+  var year = eod.getFullYear();
   var expireDate = new Date(year, month, 1, 0, 0, 0, 0);
   var daystoAdd = -1;
   daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
@@ -654,10 +674,10 @@ app.get('/CSVMaturing', function (req, res){
               }
               daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
               previous = expireDate.addDays(daystoAdd);
-              if (current.getDate() === previous.getDate()){
+              if (eod.getDate() === previous.getDate()){
                 var months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEPT", "OCT", "NOV", "DEC"];
-                month = months[current.getMonth];
-                year = current.getFullYear().toString().substring(2);
+                month = months[eod.getMonth];
+                year = eod.getFullYear().toString().substring(2);
                 queryString = "SELECT * FROM Trades WHERE expiry_month=" + month + " AND expiry_year=" 
                 + year + ";"
                 connection.query(queryString, function(err, rows, fields) {
@@ -704,7 +724,7 @@ app.get('/CSVMaturing', function (req, res){
       });
     });
   });
-});
+}
 
 function updateDaysPastWeekend(daystoAdd, currentTime, numDays){
   var isWeekend = true;

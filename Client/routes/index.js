@@ -50,8 +50,8 @@ router.post('/', function (req, res) {
   {
     expiry_month = expiry_match[1].toUpperCase();
     expiry_year  = expiry_match[2];
-    month = romanNumbers.indexOf(expiry_month) == -1 ?  months.indexOf(expiry_month) + 1: romanNumbers.indexOf(expiry_month) + 1;
-    if (romanNumbers.indexOf(expiry_month) == -1 && months.indexOf(expiry_month) == -1) {
+    expiry_month = romanNumbers.indexOf(expiry_month) == -1 ?  months.indexOf(expiry_month): romanNumbers.indexOf(expiry_month);
+    if (expiry_month == -1) {
       loadIndex.loadIndexWithMessage(res,'Invalid expiry value.', "");
       return;
     }

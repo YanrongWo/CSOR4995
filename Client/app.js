@@ -202,8 +202,8 @@ app.get('/CSVDailyTrades', function (req, res) {
    
   // Find the Trades associated to the fills from today
   var queryString = 'SELECT * FROM Trades, Fills WHERE Fills.tradeID = Trades.uid '+
-        'AND DATE(Fills.fillTime) = CURDATE() AND DATE(Trades.transactionTime) = '+ 
-        'DATE(Fills.fillTime)';
+        'AND DATE(Fills.fillTime) in (SELECT eod from EOD) AND DATE(Trades.transactionTime) in '+ 
+        '(SELECT eod from EOD);';
    
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
@@ -487,7 +487,7 @@ app.get('/CSVSwaps', function (req, res) {
 app.get('/CSVDailySwaps', function (req, res) {
 
   // Find the Trades associated to the fills from today
-  var queryString = 'SELECT * FROM Swaps';
+  var queryString = 'SELECT * FROM Swaps WHERE DATE(transactionTime) in (SELECT eod from EOD);';
    
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;

@@ -186,17 +186,6 @@ block content
 			form(name="sendCSVPLSwaps", action="/CSVPLSwaps", method="get", id="sendCSVPLSwapsForm")
 				div(class="form-group")
 					input(type="submit", value="Get CSV PnL", class="btn btn-success")
-				div(class="form-group")
-					div(class="radio", id="pl-radio")
-						label(class="checkbox-inline")
-							input(type="radio", name="pltype", value="trades")
-							| By Trades
-						label(class="checkbox-inline")
-							input(type="radio", name="pltype", value="trader")
-							| By Trader
-						label(class="checkbox-inline")
-							input(type="radio", name="pltype", value="product")
-							| By Product	
 			form(name="sendCSVMaturingSwaps", action="/CSVMaturingSwaps", method="get", id="sendCSVMaturingSwapsForm")
 				div(class="form-group")
 					input(type="submit", value= "Get CSV of Trades Maturing Today", class="btn btn-success")

@@ -119,9 +119,11 @@ app.get('/CSVTrades', function (req, res) {
     toSend = toSend.substring(0, toSend.length - 1) + "\n";
     for (row in rows){
         row = rows[row];
-        toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
-                  + row.expiry_year + "," + row.lots + "," + row.price + ","
-                  + row.side + "," + row.traderID + "," + row.transactionTime + "," + row.type + "\n";
+        for (field in fields){
+          field = fields[field].name
+          toSend += row[field] + ",";
+        }
+        toSend = toSend.substring(0, toSend.length - 1) + "\n";
     }
     res.send(toSend);
 
@@ -537,7 +539,6 @@ app.get('/Eod', function(req, res){
         for (var i in holidays){
           for (var j in actual_holidays){
             if (holidays[i].name == actual_holidays[j]){
-              console.log("matched");
               daystoAdd += 1
             }
           }
@@ -551,7 +552,7 @@ app.get('/Eod', function(req, res){
             if (err) throw err;
             eod = rows[0].eod;
             updateMaturingTrades(eod);
-            //updateMaturingSwaps(eod);
+            updateMaturingSwaps(eod);
             loadIndex.loadIndexWithMessage(res, 'EOD updated to: ' + eod);
           });
         });
@@ -561,20 +562,24 @@ app.get('/Eod', function(req, res){
 });
 
 function updateMaturingSwaps(eod){
-  var month = eod.getMonth();
+  var month = eod.getMonth() + 1;
   var year = eod.getFullYear();
   var day = eod.getDate();
-  var queryString = "update Swaps SET status='matured' where (YEAR(termination) < " + year 
-    + ") OR (YEAR(termination) = " + year + " and MONTH(termination) < " + month + 
-    ") OR (YEAR(termination) = " + year + " and MONTH(termination) = " + month + 
-    " and DAY(termination) < " + day + ");"
+  var queryString = "update Swaps set status = 'ongoing';";
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    queryString = "update Swaps SET status='maturing' where (YEAR(termination) = " + 
-      year + " and MONTH(termination) = " + month + 
-      " and DAY(termination) = " + day + ");"
+    queryString = "update Swaps SET status='matured' where (YEAR(termination) < " + year 
+      + ") OR (YEAR(termination) = " + year + " and MONTH(termination) < " + month + 
+      ") OR (YEAR(termination) = " + year + " and MONTH(termination) = " + month + 
+      " and DAY(termination) < " + day + ");";
     connection.query(queryString, function(err, rows, fields) {
-    if (err) throw err;
+      if (err) throw err;
+      queryString = "update Swaps SET status='maturing' where (YEAR(termination) = " + 
+        year + " and MONTH(termination) = " + month + 
+        " and DAY(termination) = " + day + ");";
+      connection.query(queryString, function(err, rows, fields) {
+        if (err) throw err;
+      });
     });
   });
 }
@@ -582,7 +587,7 @@ function updateMaturingSwaps(eod){
 function updateMaturingTrades(eod){
   var month = eod.getMonth();
   var year = eod.getFullYear();
-  var expireDate = new Date(year, month, 1, 0, 0, 0, 0);
+  var expireDate = new Date(year, month + 1, 1, 0, 0, 0, 0);
   var daystoAdd = -1;
   daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
   var previous = expireDate.addDays(daystoAdd);
@@ -603,7 +608,7 @@ function updateMaturingTrades(eod){
     response.on("end", function (err) {
       data = JSON.parse(buffer);
       holidays = data.holidays;
-      actual_holidays = ["New Year's Day", "Martin Luther King, Jr. Day", "Washington's Birthday", "Good Friday",
+      var actual_holidays = ["New Year's Day", "Martin Luther King, Jr. Day", "Washington's Birthday", "Good Friday",
         "Memorial Day", "Independence Day", "Labor Day", "Thanksgiving Day", "Christmas"];
       for (var i in holidays){
         for (var j in actual_holidays){
@@ -674,50 +679,35 @@ function updateMaturingTrades(eod){
               }
               daystoAdd = updateDaysPastWeekend(daystoAdd, expireDate, -1);
               previous = expireDate.addDays(daystoAdd);
-              if (eod.getDate() === previous.getDate()){
-                var months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEPT", "OCT", "NOV", "DEC"];
-                month = months[eod.getMonth];
-                year = eod.getFullYear().toString().substring(2);
-                queryString = "SELECT * FROM Trades WHERE expiry_month=" + month + " AND expiry_year=" 
-                + year + ";"
+              var queryString = "update Trades set status = 'ongoing';"
+              connection.query(queryString, function(err, rows, fields) {
+                if (err) throw err;
+                queryString = "update Trades set status = 'matured' where (expiry_year < " + 
+                  eod.getFullYear().toString().substring(2) + ") OR (expiry_year = " 
+                  + eod.getFullYear().toString().substring(2) + " AND expiry_month < "
+                  + eod.getMonth() + ");";
                 connection.query(queryString, function(err, rows, fields) {
                   if (err) throw err;
-                  res.setHeader('Content-disposition', 'attachment; filename=marturingtrades.csv');
-                  res.setHeader('Content-type', 'text/csv');
+                  if (eod.getDate() === previous.getDate()){
+                    queryString = "update Trades set status = 'maturing' where (expiry_year = " 
+                      + eod.getFullYear().toString().substring(2) + " AND expiry_month = "
+                      + eod.getMonth() + ");";
+                    connection.query(queryString, function(err, rows, fields) {
+                      if (err) throw err;
 
-                  var toSend = "";
-                  for (field in fields){
-                    field = fields[field];
-                    toSend += field.name + ",";
+                    });
                   }
-                  toSend = toSend.substring(0, toSend.length - 1) + "\n";
-                  for (row in rows){
-                      row = rows[row];
-                      toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
-                                + row.expiry_year + "," + row.lots + "," + row.price + ","
-                                + row.side + "," + row.traderID + "," + row.transactionTime + "," + row.type + "\n";
-                  }
-                  res.send(toSend);
+                  else if (eod.getDate() > previous.getDate()){
+                    queryString = "update Trades set status = 'matured' where (expiry_year = " 
+                      + eod.getFullYear().toString().substring(2) + " AND expiry_month = "
+                      + eod.getMonth() + ");";
+                    connection.query(queryString, function(err, rows, fields) {
+                      if (err) throw err;
 
+                    });
+                  }
                 });
-              }
-              else {
-                queryString = "SELECT * FROM Trades Limit 1;"
-                connection.query(queryString, function(err, rows, fields) {
-                  if (err) throw err;
-                  res.setHeader('Content-disposition', 'attachment; filename=marturingtrades.csv');
-                  res.setHeader('Content-type', 'text/csv');
-
-                  var toSend = "";
-                  for (field in fields){
-                    field = fields[field];
-                    toSend += field.name + ",";
-                  }
-                  toSend = toSend.substring(0, toSend.length - 1) + "\n";
-                  res.send(toSend);
-
-                });
-              }
+              });
             });
           });
         });
@@ -749,6 +739,66 @@ Date.prototype.addDays = function(days)
     dat.setDate(dat.getDate() + days);
     return dat;
 }
+
+app.get('/CSVMaturing', function (req, res) {
+  var queryString = 'SELECT * FROM Trades where status="maturing"';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+
+    res.setHeader('Content-disposition', 'attachment; filename=tradesmaturing.csv');
+    res.setHeader('Content-type', 'text/csv');
+
+    var toSend = "";
+    for (field in fields){
+      field = fields[field];
+      toSend += field.name + ",";
+    }
+    toSend = toSend.substring(0, toSend.length - 1) + "\n";
+    for (row in rows){
+        row = rows[row];
+        for (field in fields){
+          field = fields[field].name
+          toSend += row[field] + ",";
+        }
+        toSend = toSend.substring(0, toSend.length - 1) + "\n";
+    }
+    res.send(toSend);
+  });
+});
+
+
+//@Summary: Write Swaps to CSV File
+//@Triggered: GET request sent to domain/CSVSwaps
+app.get('/CSVMaturingSwaps', function (req, res) {
+
+  var queryString = 'SELECT * FROM Swaps where status="maturing"';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+
+    res.setHeader('Content-disposition', 'attachment; filename=swapsmaturing.csv');
+    res.setHeader('Content-type', 'text/csv');
+
+    var toSend = "";
+    for (field in fields){
+      field = fields[field];
+      toSend += field.name + ",";
+    }
+    toSend = toSend.substring(0, toSend.length - 1) + "\n";
+    for (row in rows){
+        row = rows[row];
+        for (field in fields){
+          field = fields[field].name
+          toSend += row[field] + ",";
+        }
+        toSend = toSend.substring(0, toSend.length - 1) + "\n";
+    }
+    res.send(toSend);
+
+  });
+
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -786,7 +836,7 @@ process.stdin.resume();//so the program will not close instantly
 
 function exitHandler(options, err) {
     connection.end();
-    if (options.cleanup) console.log('clean');
+    if (options.cleanup) console.log('Cleaning up');
     if (err) console.log(err.stack);
     if (options.exit) process.exit();
 }

@@ -536,7 +536,6 @@ function swapday(time){
 app.get('/CSVAggregateSwaps', function (req, res) {
 //TODO
 
-  // Find the Trades associated to the fills from today
   var queryString = 'SELECT * FROM Swaps WHERE DATE(termination) in (SELECT eod from EOD);';
    
   connection.query(queryString, function(err, rows, fields) {
@@ -554,7 +553,7 @@ app.get('/CSVAggregateSwaps', function (req, res) {
 				toSend += row["start"] + "," + row["termination"] + "," + floatr + "," + fixed + "\n";
 			}	
 		}		
-    res.setHeader('Content-disposition', 'attachment; filename=dailyswaps.csv');
+    res.setHeader('Content-disposition', 'attachment; filename=swapagg.csv');
     res.setHeader('Content-type', 'text/csv');
 		res.send(toSend);
 	});
@@ -564,11 +563,34 @@ app.get('/CSVAggregateSwaps', function (req, res) {
 //@Summary: Write PnL By Trades to CSV File
 //@Triggered: GET request sent to domain/CSVPL
 app.get('/CSVPLSwaps', function (req, res) {
-  var pltype = req.query["pltype"];
-  if(pltype !== "trades" && pltype !== "trader" && pltype !== "product") {
-    res.send("ERROR");
-    return 0;
-  }
+  var queryString = 'SELECT * FROM Swaps WHERE DATE(termination) in (SELECT eod from EOD);';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+
+		var swaps = {};
+		for(var row in rows) {
+			var index = row;
+			row = rows[row];
+			var floatr = row['floatingRate'] + row['spread'];
+			var fixed = row['fixedRate'];
+			if(row['floatPayer'] === "Me") {
+				swaps[index] = fixed - floatr;
+			}
+			else swaps[index] = floatr - fixed; 
+		}
+
+    res.setHeader('Content-disposition', 'attachment; filename=swapnl.csv');
+    res.setHeader('Content-type', 'text/csv');
+
+		var toSend = "start,termination,fixedPayer,floatPayer,profit\n";
+		for(var i in swaps) {
+			var row = rows[i];
+			toSend += row["start"] + "," + row["termination"] + "," + row["fixedPayer"] + "," + row["floatPayer"] + "," + swaps[i] + "\n";
+		}
+		res.send(toSend);
+
+	});
 
 
   //TODO

@@ -545,10 +545,7 @@ app.get('/CSVAggregateSwaps', function (req, res) {
 		var toSend = "start,termination,rate_to_receive,rate_to_pay\n";
 		for(var row in rows) {
 			row = rows[row];
-			console.log(row);
-			var base = row['floatingRate'];
-			var spread = row['spread'];
-			var floatr = base + (Math.random() * spread)*(Math.random() < 0.5 ? -1 : 1);
+			var floatr = row['floatingRate'] + row['spread'];
 			var fixed = row['fixedRate'];
 			if(row['floatPayer'] === "Me") {
 				toSend += row["start"] + "," + row["termination"] + "," + fixed + "," + floatr + "\n";

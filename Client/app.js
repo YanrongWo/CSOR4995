@@ -536,6 +536,32 @@ function swapday(time){
 app.get('/CSVAggregateSwaps', function (req, res) {
 //TODO
 
+  // Find the Trades associated to the fills from today
+  var queryString = 'SELECT * FROM Swaps WHERE DATE(termination) in (SELECT eod from EOD);';
+   
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+
+		var toSend = "start,termination,rate_to_receive,rate_to_pay\n";
+		for(var row in rows) {
+			row = rows[row];
+			console.log(row);
+			var base = row['floatingRate'];
+			var spread = row['spread'];
+			var floatr = base + (Math.random() * spread)*(Math.random() < 0.5 ? -1 : 1);
+			var fixed = row['fixedRate'];
+			if(row['floatPayer'] === "Me") {
+				toSend += row["start"] + "," + row["termination"] + "," + fixed + "," + floatr + "\n";
+			}
+			else {
+				toSend += row["start"] + "," + row["termination"] + "," + floatr + "," + fixed + "\n";
+			}	
+		}		
+    res.setHeader('Content-disposition', 'attachment; filename=dailyswaps.csv');
+    res.setHeader('Content-type', 'text/csv');
+		res.send(toSend);
+	});
+
 });
 
 //@Summary: Write PnL By Trades to CSV File

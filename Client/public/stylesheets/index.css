@@ -40,6 +40,11 @@
 	margin-left: 2vw;
 }
 
+#bottom{
+	margin:10vw;
+	margin-top: 2vw;
+}
+
 #sendCSVTradesForm{
 	overflow: auto;
 	width: 20vw;

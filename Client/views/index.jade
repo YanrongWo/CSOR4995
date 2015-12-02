@@ -77,10 +77,10 @@ block content
 					select(name="trader", id="traderDropdown", class="form-control")
 				div(class="form-group")
 					input(type="submit", value="Submit", class="btn btn-default")
-				div(class="form-group", id="bottom", style="margin-top:2vw")
-					label Fill Messages:
-					p(id="msgs")
-					!{fills}
+		div(class="form-group", id="bottom")
+			label Fill Messages: 
+			p(id="msgs")
+			!{fills}
 			
 		div(class="form-group", id="toggle2", style="display:none;")
 			form(name="interestRateSwaps", action="/interestRateSwap", method="post", id="interestRateSwaps")

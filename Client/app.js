@@ -231,11 +231,11 @@ app.get('/CSVDailyTrades', function (req, res) {
         		my_price = null;
         	}
           // Values that are displayed in the csv
-	        toSend += row.uid + "," + row.symbol + "," + row.expiry_month + ","
-	                  + row.expiry_year + "," + row.lots + "," + my_price + ","
-	                  + row.side + "," + row.traderID + "," + row.transactionTime + "," 
-	                  + row.type + "," + row.uid + "," + row.lots + "," + row.fillPrice + "," 
-                    + row.fillTime + "," + row.TradeID +"\n";
+	        toSend += row.uid + "," + row.symbol + "," + row.lots + "," + my_price + ","
+                  + row.side + "," + row.traderID + "," + row.transactionTime + ","
+                  + row.type + "," + row.status + "," + row.expiry_month + ","
+                  + row.expiry_year + "," + row.uid + "," + row.lots + ","
+                  + row.fillPrice + "," + row.fillTime + "," + row.TradeID +"\n";
         }
 
     res.send(toSend);
@@ -496,7 +496,6 @@ app.get('/CSVDailySwaps', function (req, res) {
     res.setHeader('Content-type', 'text/csv');
 
     var utcdate = moment.utc().format('YYYY-MM-DD');
-    console.log("transdate: ", utcdate)
     var toSend = "";
     for (field in fields){
       field = fields[field];
@@ -508,8 +507,6 @@ app.get('/CSVDailySwaps', function (req, res) {
         swapdate = row.transactionTime.getFullYear() + "-" 
                   + parseFloat(row.transactionTime.getMonth() + 1 )+ "-" 
                   + swapday(row.transactionTime);
-        console.log("transdate: ", row.transactionTime)
-        console.log("Date Format: ", swapdate)
         if (utcdate == swapdate) {
           toSend += row.start + "," + row.termination + "," + row.floatingRate + ","
                   + row.spread + "," + row.fixedRate + "," + row.fixedPayer + ","
@@ -534,7 +531,6 @@ function swapday(time){
 //@Summary: Write Aggregate Position to CSV File
 //@Triggered: GET request sent to domain/CSVAggregateSwaps
 app.get('/CSVAggregateSwaps', function (req, res) {
-//TODO
 
   // Find the Trades associated to the fills from today
   var queryString = 'SELECT * FROM Swaps WHERE DATE(termination) in (SELECT eod from EOD);';

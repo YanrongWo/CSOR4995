@@ -77,10 +77,6 @@ block content
 					select(name="trader", id="traderDropdown", class="form-control")
 				div(class="form-group")
 					input(type="submit", value="Submit", class="btn btn-default")
-		div(class="form-group", id="bottom")
-			label Fill Messages: 
-			p(id="msgs")
-			!{fills}
 			
 		div(class="form-group", id="toggle2", style="display:none;")
 			form(name="interestRateSwaps", action="/interestRateSwap", method="post", id="interestRateSwaps")
@@ -128,6 +124,11 @@ block content
 							| LCH
 				div(class="form-group")
 					input(type="submit", value="Submit", id="submitSwap", class="btn btn-default")
+
+		div(class="form-group", id="bottom")
+			label Fill Messages: 
+			p(id="msgs")
+			!{fills}
 	div(class="right")
 		h3.title Create a New User
 		form(name="createNewUser", action="/newUser", method="post", id="createNewUserForm")

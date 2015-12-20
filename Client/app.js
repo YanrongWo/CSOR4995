@@ -50,7 +50,7 @@ app.post('/interestRateSwap', function (req, res) {
 
   var queryString = "INSERT INTO Swaps VALUES ('" + startdate + "','" +  terminationdate 
     + "','" + floating + "','" + spread + "','" + fixed + "','" + whopaysfixed + "','" 
-    + whopaysfloat + "','" + traderID + "','" + utcdatetime + "','" + status + "');";
+    + whopaysfloat + "','" + traderID + "','" + utcdatetime + "','" + status + "', NULL);";
 
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;

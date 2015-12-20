@@ -27,11 +27,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', routes);
 app.use('/users', users);
 
+
+
 //@Summary: Inserts value from form on interest Rate Swap page into database
 //@Triggered: POST request sent from domain/interestRateSwap
 app.post('/interestRateSwap', function (req, res) {
   // Values from field and date received
   var utcdatetime = moment.utc().format('YYYY-MM-DD HH:mm:ss');
+  var utcdate = moment.utc().format('YYYY-MM-DD')
   var startdate = req.body.startDate;
   var terminationdate = req.body.terminationDate;
   var floating = req.body.floatingRate;
@@ -59,12 +62,131 @@ app.post('/interestRateSwap', function (req, res) {
       if (err) throw err;
       swapId = rows[0]['LAST_INSERT_ID()'];
       var builder = require('xmlbuilder');
-      var xml = builder.create('trade')
+      var affirmationPlatform = builder.create('affirmationPlatform')
+
+      // header
+      var header = affirmationPlatform.ele('header').insertAfter('trade')
+        .prev()
+        .ele('messageId', {'messageIdScheme':'message_id'}, swapId)
+        .insertAfter('sentBy', {'MessageAddressScheme': 'test_exchange_id'}, 'testexchange')
+        .insertAfter('creationTimestamp', today)
+
+
+      // Trade
+      var trade = header.up().next()
         .ele('tradeHeader')
+        .insertAfter('swap')
+        .prev()
           .ele('partyTradeIdentifier')
-            .ele('tradeId', {'tradeIdScheme': 'client_trade_id'}, swapId)
-        .end({ pretty: true});
-      console.log(xml);
+            .ele('partyRefernece', {'href':'clearing_service'})
+            .insertAfter('tradeId', {'tradeIdScheme': 'client_trade_id'}, swapId)
+          .up()
+          .insertAfter('partyTradeInformation')
+            .ele('partyRefernece', {'href':'clearing_firm'})
+          .up()
+          .insertAfter('tradeDate', utcdate)
+          .insertAfter('clearedDate')
+
+      // Swap
+      // Swap = fixedLeg
+      var fixedLeg = trade.up().next().ele('swapStream', {'id':'fixedLeg'})
+        .ele('payerPartyReference', {'href':'clearing_firm'})
+        .insertAfter('receiverPartyReference', {'href':'clearing_service'})
+      var calculationPeriodDates = fixedLeg.insertAfter('calculationPeriodDates', {'id':'fixedCalcPeriodDates'})
+          .ele('effectiveDate')
+            .ele('unadjustedDate', startdate)
+            .insertAfter('dateAdjustments')
+              .ele('businessDayConvention', 'NONE')
+             .up()
+           .up()
+           .insertAfter('terminationDate')
+            .ele('unadjustedDate', terminationdate)
+            .insertAfter('dateAdjustments')
+              .ele('businessDayConvention', 'NONE')
+            .up()
+          .up()
+          .insertAfter('calculationPeriodDatesAdjustments')
+            .ele('businessDayConvention', 'NONE')
+          .up()
+          .insertAfter('calculationPeriodFrequency')
+            .ele('periodMultiplier', '1')
+            .insertAfter('period', 'M')
+            .insertAfter('rollConvention', startdate.substring(8,10))
+      var paymentDates = calculationPeriodDates.up().up().insertAfter('paymentDates')
+        .ele('calculationPeriodDatesReference', {'href': 'fixedCalcPeriodDates'})
+        .insertAfter('paymentFrequency')
+        .ele('periodMultiplier', '1')
+        .insertAfter('period', 'M')
+        .up()
+        .insertAfter('payRelativeTo', 'CalculationPeriodEndDate')
+        .insertAfter('paymentDatesAdjustments')
+        .ele('businessDayConvention', 'NONE')
+        .insertAfter('businessCentersReference', {'href': 'fixedPrimaryBusinessCenters' })
+      var calculationPeriodAmount = paymentDates.up().up().insertAfter('calculationPeriodAmount')
+        .ele('calculation')
+          .ele('notionalSchedule')
+            .ele('notionalStepSchedule')
+              .ele('initialValue')
+              .insertAfter('currency', 'USD')
+            .up()
+          .up()
+          .insertAfter('fixedRateSchedule')
+            .ele('initialValue', fixed)
+
+      // //Floating
+      var floatLeg = trade.up().next().ele('swapStream', {'id':'floatLeg'})
+        .ele('payerPartyReference', {'href':'clearing_service'})
+        .insertAfter('receiverPartyReference', {'href':'clearing_firm'})
+      var float_calculationPeriodDates = floatLeg.insertAfter('calculationPeriodDates', {'id':'fixedCalcPeriodDates'})
+          .ele('effectiveDate')
+            .ele('unadjustedDate', startdate)
+            .insertAfter('dateAdjustments')
+              .ele('businessDayConvention', 'NONE')
+             .up()
+           .up()
+           .insertAfter('terminationDate')
+            .ele('unadjustedDate', terminationdate)
+            .insertAfter('dateAdjustments')
+              .ele('businessDayConvention', 'NONE')
+            .up()
+          .up()
+          .insertAfter('calculationPeriodDatesAdjustments')
+            .ele('businessDayConvention', 'NONE')
+          .up()
+          .insertAfter('calculationPeriodFrequency')
+            .ele('periodMultiplier', '1')
+            .insertAfter('period', 'M')
+            .insertAfter('rollConvention', startdate.substring(8,10))
+      var float_paymentDates = float_calculationPeriodDates.up().up().insertAfter('paymentDates')
+        .ele('calculationPeriodDatesReference', {'href': 'fixedCalcPeriodDates'})
+        .insertAfter('paymentFrequency')
+        .ele('periodMultiplier', '1')
+        .insertAfter('period', 'M')
+        .up()
+        .insertAfter('payRelativeTo', 'CalculationPeriodEndDate')
+        .insertAfter('paymentDatesAdjustments')
+        .ele('businessDayConvention', 'NONE')
+        .insertAfter('businessCentersReference', {'href': 'fixedPrimaryBusinessCenters' })
+      var float_calculationPeriodAmount = float_paymentDates.up().up().insertAfter('calculationPeriodAmount')
+        .ele('calculation')
+          .ele('notionalSchedule')
+            .ele('notionalStepSchedule')
+              .ele('initialValue')
+              .insertAfter('currency', 'USD')
+            .up()
+          .up()
+          .insertAfter('floatingRateCalculations')
+            .ele('floatingRateIndex', floating)
+            .insertAfter('floatingRateSpread', spread)
+            .insertAfter('indexTenor')
+              .ele('periodMultiplier', '1')
+              .insertAfter('period','M')
+      var clearing_firm = float_calculationPeriodAmount.root().ele('party', {id: 'clearing_firm'})
+        .ele('partyId', {'partyIdScheme':'trader_id'}, traderID)
+      var clearing_service = clearing_firm.root().ele('party', {'id':'clearing_service'})
+        .ele('partyId', 'testexchange')
+      .end({ pretty: true});
+      console.log(clearing_service);
       loadIndex.loadIndexWithMessage(res, 'Interest Rate Swap Captured!', "")
     });
   });

@@ -54,7 +54,19 @@ app.post('/interestRateSwap', function (req, res) {
 
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    loadIndex.loadIndexWithMessage(res, 'Interest Rate Swap Captured!', "")
+    queryString = "SELECT LAST_INSERT_ID();"
+    connection.query(queryString, function(err, rows, fields) {
+      if (err) throw err;
+      swapId = rows[0]['LAST_INSERT_ID()'];
+      var builder = require('xmlbuilder');
+      var xml = builder.create('trade')
+        .ele('tradeHeader')
+          .ele('partyTradeIdentifier')
+            .ele('tradeId', {'tradeIdScheme': 'client_trade_id'}, swapId)
+        .end({ pretty: true});
+      console.log(xml);
+      loadIndex.loadIndexWithMessage(res, 'Interest Rate Swap Captured!', "")
+    });
   });
 });
 

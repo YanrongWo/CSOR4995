@@ -27,6 +27,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', routes);
 app.use('/users', users);
 
+
+var connection = mysql.createConnection(
+  {
+    host     : '104.131.22.150',
+    user     : 'rrp',
+    password : 'rrp',
+    database : 'financial',
+  }
+);
+
+connection.connect();
+
 //@Summary: Inserts value from form on interest Rate Swap page into database
 //@Triggered: POST request sent from domain/interestRateSwap
 app.post('/interestRateSwap', function (req, res) {
@@ -65,21 +77,40 @@ app.post('/interestRateSwap', function (req, res) {
             .ele('tradeId', {'tradeIdScheme': 'client_trade_id'}, swapId)
         .end({ pretty: true});
       console.log(xml);
-      loadIndex.loadIndexWithMessage(res, 'Interest Rate Swap Captured!', "")
+      amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
+        if (err)
+        {
+          var query = 'DELETE FROM Swaps VALUES WHERE swapId = "' + swapId + '"';
+          connection.query(queryString, function(err, rows, fields) {
+            if (err) throw err;
+            connection.end();
+            loadIndex.loadIndexWithMessage(res, 'Error accessing MoM. Try again later.', "");
+            return;
+          });
+        }
+        conn.createChannel(function(err, ch) {
+          if (err)
+            console.log(err);
+          var q = 'Affirmation';
+          var msg =  "Test";
+          ch.assertQueue(q, {durable: false});
+          recieveConfirm(swapId, res, req);
+          ch.sendToQueue(q, new Buffer(msg), {persistent: true});
+          //loadIndex.loadIndexWithMessage(res, 'Trades captured!', []);
+          console.log('Sent to Exchange');
+          loadIndex.loadIndexWithMessage(res, 'Interest Rate Swap Captured!', "");
+          setTimeout(function() { conn.close(); }, 500);
+        });
+        //Show confirmation 
+        connection.end();
+      });
     });
   });
 });
 
-var connection = mysql.createConnection(
-  {
-    host     : '104.131.22.150',
-    user     : 'rrp',
-    password : 'rrp',
-    database : 'financial',
-  }
-);
+function recieveConfirm(swapId, res, req){
 
-connection.connect();
+}
 
 //@Summary: Redirect to home page if not post request
 //@Triggered: GET request sent to domain/newUser

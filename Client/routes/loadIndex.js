@@ -47,6 +47,14 @@ function loadIndexWithMessage(res, message, trg)
   });
 }
 
+
+// function loadIndexWithConfirm(res, alert){
+//   res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
+//     title: 'Trade Capturer',
+//     alertScript: message,
+//     traderScript: JSON.stringify(traders),
+//     fills: fillStr });
+// }
 module.exports = {
   loadIndexWithMessage : function (res, message, m) { 
                             loadIndexWithMessage(res, message, m);

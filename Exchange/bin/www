@@ -475,6 +475,13 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
         setTimeout(function() {sendMarketPrice(price, symbol)}, 500);;
       }
     }, {noAck: false});
+
+    var a = "Affirmation";
+    ch.assertQueue(a, {durable: false});
+    ch.consume(a, function(msg) {
+      ch.ack(msg);
+      console.log(msg.content.toString());
+     }, {noAck: false});
   });
 });
 

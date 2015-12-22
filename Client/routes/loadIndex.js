@@ -49,7 +49,6 @@ function loadIndexWithMessage(res, message, trg)
             console.log("MessageCount2:" + ok.messageCount);
             ch.consume(q, function(msg) {
               var swapId = msg.content.toString(); //Parse out the swapId from Message - Priscilla
-              console.log('MEOWWWWWW', swapId)
               queryString = "SELECT * from Swaps where swapId=" + swapId + ";";
               console.log(queryString);
               connection.query(queryString, function(err, rows, fields) {

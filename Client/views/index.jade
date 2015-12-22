@@ -254,7 +254,7 @@ block content
 			document.getElementById(id3).disabled = false;
 		}
 
-		function show_dialog(message) {
+		function show_dialog(message, swapId) {
 			if (message){
 				$("#dialog-confirm p").prepend(message);  
 			    $("#dialog-confirm").dialog({
@@ -264,16 +264,28 @@ block content
 					buttons: {
 						"Grant": function() {
 							$( this ).dialog( "close" );
+							$.ajax({
+						        method: "POST",
+						        url: "/replyConsent",
+						        data: { swapId: swapId,
+							        reply: "granted" }
+						    });
 						},
 						"Refuse": function() {
 							$( this ).dialog( "close" );
+							$.ajax({
+						        method: "POST",
+						        url: "/replyConsent",
+						        data: { swapId: swapId,
+							        reply: "denied" }
+						    });
 						}
 					}
 				});
 			}
 		}
 
-		show_dialog('!{swapMessage}');
+		show_dialog('!{swapMessage}', '!{swapId}');
 
 
 

@@ -38,6 +38,44 @@ var connection = mysql.createConnection(
 
 connection.connect();
 
+app.post('/replyConsent', function(res,req) {
+  var message = '';
+  console.log("Rona is here");
+  console.log(req.body.swapId);
+  console.log(req.body.reply);
+  var queryString = "Select * FROM Swaps where swapId=" + req.body.swapId + ";";
+  connection.query(queryString, function(err, rows, fields) {
+    if (err) throw err;
+    var utcdate = rows[0].transactionTime
+    var startdate = rows[0].start
+    var terminationdate = rows[0].termination;
+    var floating = rows[0].floatingRate;
+    var spread = rows[0].spread;
+    var fixed = rows[0].fixedRate;
+    var traderID = rows[0].uid;
+    var whopaysfixed = rows[0].fixedPayer;
+    var whopaysfloat = rows[0].floatPayer;
+    if (req.body.reply == "granted"){
+      message = "granted";
+      //Priscilla - Fill in consentgranted in for message
+    }
+    else{
+      message = "denied";
+      //Priscilla - FIll in consentdenied in for message
+    }
+    console.log(message);
+    amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
+      conn.createChannel(function(err, ch) {
+        if (err) throw err;
+        console.log("inside" + message);
+        var q = 'replyConsent';
+        ch.assertQueue(q, {durable: false});
+        ch.sendToQueue(q, new Buffer(message), {persistent: true});
+      });
+    });
+  });
+  return;
+});
 //@Summary: Inserts value from form on interest Rate Swap page into database
 //@Triggered: POST request sent from domain/interestRateSwap
 app.post('/interestRateSwap', function (req, res) {

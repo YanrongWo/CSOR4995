@@ -46,6 +46,7 @@ function loadIndexWithMessage(res, message, trg)
           if (err) throw err;
           console.log("MessageCount:" + ok.messageCount);
           if (ok.messageCount > 0){
+            console.log("MessageCount2:" + ok.messageCount);
             ch.consume(q, function(msg) {
               var swapId = msg.content.toString(); //Parse out the swapId from Message - Priscilla
               queryString = "SELECT * from Swaps where swapId=" + swapId + ";";
@@ -60,8 +61,10 @@ function loadIndexWithMessage(res, message, trg)
                   alertScript: message,
                   traderScript: JSON.stringify(traders),
                   fills: fillStr,
-                  swapMessage: swapMessage });
+                  swapMessage: swapMessage,
+                  swapId: rows[0].swapId});
                 ch.ack(msg);
+                ch.close();
                 return;
               });
             });
@@ -72,6 +75,8 @@ function loadIndexWithMessage(res, message, trg)
               alertScript: message,
               traderScript: JSON.stringify(traders),
               fills: fillStr });
+            ch.close();
+            return;
           }
         });
       });
@@ -79,13 +84,6 @@ function loadIndexWithMessage(res, message, trg)
   });
 }
 
-// function loadIndexWithConfirm(res, alert){
-//   res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
-//     title: 'Trade Capturer',
-//     alertScript: message,
-//     traderScript: JSON.stringify(traders),
-//     fills: fillStr });
-// }
 module.exports = {
   loadIndexWithMessage : function (res, message, m) { 
                             loadIndexWithMessage(res, message, m);

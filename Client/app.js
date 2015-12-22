@@ -38,9 +38,10 @@ var connection = mysql.createConnection(
 
 connection.connect();
 
-app.post('/replyConsent', function(res,req) {
+app.post('/replyConsent', function(req,res) {
   var message = '';
   console.log("Rona is here");
+  console.log(req.body);
   console.log(req.body.swapId);
   console.log(req.body.reply);
   var queryString = "Select * FROM Swaps where swapId=" + req.body.swapId + ";";
@@ -71,6 +72,7 @@ app.post('/replyConsent', function(res,req) {
         var q = 'replyConsent';
         ch.assertQueue(q, {durable: false});
         ch.sendToQueue(q, new Buffer(message), {persistent: true});
+        res.send("");
       });
     });
   });

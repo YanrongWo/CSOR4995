@@ -512,7 +512,7 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
           }
           var clearingQueue = "clearingReply"
           ch3.sendToQueue(clearingQueue, new Buffer(clearingQueue), {persistent: true});
-          ack(msg3);
+          ch.ack(msg3);
           ch3.close();
         });
       });

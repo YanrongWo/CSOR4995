@@ -58,11 +58,48 @@ app.post('/replyConsent', function(req,res) {
     var whopaysfloat = rows[0].floatPayer;
     if (req.body.reply == "granted"){
       message = "granted";
-      //Priscilla - Fill in consentgranted in for message
+      if (err) throw err;
+      swapId = rows[0]['LAST_INSERT_ID()'];
+      var builder = require('xmlbuilder');
+      var consentGranted = builder.create('consentGranted')
+
+      // header
+      var header = consentGranted.ele('header')
+        .ele('messageId', {'messageIdScheme':'message_id'}, swapId)
+        .insertAfter('sentBy', {'messageAddressScheme': 'firm_id'}, 'testexchange')
+        .insertAfter('creationTimestamp', today)
+
+      // correlationIdScheme
+      var correlationIdScheme = header.up().insertAfter('correlationId', 
+          {'correlationIdScheme':'trade_id'}, swapId)
+      var party = correlationIdScheme.insertAfter('party', {'id': 'clearing_firm'})
+        .ele('partyId', {'partyIdScheme':'trader_id'}, traderID)
+      .end({ pretty: true});
+      console.log(party);
     }
     else{
       message = "denied";
       //Priscilla - FIll in consentdenied in for message
+      if (err) throw err;
+      swapId = rows[0]['LAST_INSERT_ID()'];
+      var builder = require('xmlbuilder');
+      var consentRefused = builder.create('consentRefused')
+
+      // header
+      var header = consentRefused.ele('header')
+        .ele('messageId', {'messageIdScheme':'message_id'}, swapId)
+        .insertAfter('sentBy', {'messageAddressScheme': 'firm_id'}, 'testexchange')
+        .insertAfter('creationTimestamp', today)
+
+      // correlationIdScheme
+      var correlationIdScheme = header.up().insertAfter('correlationId', 
+          {'correlationIdScheme':'trade_id'}, swapId)
+      var sequenceNumber = correlationIdScheme.insertAfter('sequenceNumber', 1)
+      var party = sequenceNumber.insertAfter('party', {'id': 'clearing_firm'})
+        .ele('partyId', {'partyIdScheme':'trader_id'}, traderID)
+      .end({ pretty: true});
+      console.log(party);
+
     }
     console.log(message);
     amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {

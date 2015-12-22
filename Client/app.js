@@ -202,7 +202,6 @@ app.post('/interestRateSwap', function (req, res) {
           var query = 'DELETE FROM Swaps VALUES WHERE swapId = "' + swapId + '"';
           connection.query(queryString, function(err, rows, fields) {
             if (err) throw err;
-            connection.end();
             loadIndex.loadIndexWithMessage(res, 'Error accessing MoM. Try again later.', "");
             return;
           });
@@ -213,21 +212,15 @@ app.post('/interestRateSwap', function (req, res) {
           var q = 'Affirmation';
           var msg =  clearing_service;
           ch.assertQueue(q, {durable: false});
-          recieveConfirm(swapId, res, req);
           ch.sendToQueue(q, new Buffer(msg), {persistent: true});
           console.log('Sent to Exchange');
           loadIndex.loadIndexWithMessage(res, 'Interest Rate Swap Captured!', "");
           setTimeout(function() { conn.close(); }, 500);
         });
-        connection.end();
       });
     });
   });
 });
-
-function recieveConfirm(swapId, res, req){
-
-}
 
 //@Summary: Redirect to home page if not post request
 //@Triggered: GET request sent to domain/newUser

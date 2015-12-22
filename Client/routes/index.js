@@ -114,7 +114,6 @@ router.post('/', function (req, res) {
             var query = 'DELETE FROM Trades VALUES WHERE uid = "' + myUid + '"';
             connection.query(queryString, function(err, rows, fields) {
               if (err) throw err;
-              connection.end();
               loadIndex.loadIndexWithMessage(res, 'Error accessing MoM. Try again later.', "");
               return;
             });
@@ -215,8 +214,6 @@ router.post('/', function (req, res) {
           });
           setTimeout(function() { conn.close(); }, 500);
         });
-        //Show confirmation 
-        connection.end();
     });
   });
 });

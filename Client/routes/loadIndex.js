@@ -1,4 +1,5 @@
 var mysql = require('mysql');
+var amqp = require('amqplib/callback_api');
 
 global.messages = "";
 
@@ -36,17 +37,47 @@ function loadIndexWithMessage(res, message, trg)
       }
     }
     console.log("fillStr" + fillStr);
-    res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
-    title: 'Trade Capturer',
-    alertScript: message,
-    traderScript: JSON.stringify(traders),
-    fills: fillStr });
 
-    connection.end();
-
+    amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
+      conn.createChannel(function(err, ch) {
+        var q = 'requestConsent';
+        ch.prefetch(1);
+        ch.assertQueue(q, {durable: false}, function(err, ok){
+          if (err) throw err;
+          console.log("MessageCount:" + ok.messageCount);
+          if (ok.messageCount > 0){
+            ch.consume(q, function(msg) {
+              var swapId = msg.content.toString(); //Parse out the swapId from Message - Priscilla
+              queryString = "SELECT * from Swaps where swapId=" + swapId + ";";
+              console.log(queryString);
+              connection.query(queryString, function(err, rows, fields) {
+                if (err) throw err;
+                var swapMessage = "Request Consent for Swap " + rows[0].swapId + "<br> Trader: " + rows[0].uid + "<br>Start: " + rows[0].start 
+                  + "<br>End: " + rows[0].termination + "<br>Floating Rate: " + rows[0].floatingRate + "<br>\t Paid by: " + rows[0].fixedPayer + 
+                  "<br>Fixed Rate: " + rows[0].fixedRate + "<br>\tPaid by: " + rows[0].floatPayer + "<br>Spread: " + rows[0].spread;
+                res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
+                  title: 'Trade Capturer',
+                  alertScript: message,
+                  traderScript: JSON.stringify(traders),
+                  fills: fillStr,
+                  swapMessage: swapMessage });
+                ch.ack(msg);
+                return;
+              });
+            });
+          }
+          else {
+            res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
+              title: 'Trade Capturer',
+              alertScript: message,
+              traderScript: JSON.stringify(traders),
+              fills: fillStr });
+          }
+        });
+      });
+    });
   });
 }
-
 
 // function loadIndexWithConfirm(res, alert){
 //   res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",

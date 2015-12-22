@@ -3,7 +3,6 @@ extends layout
 block content
 	div(id="dialog-confirm" title="Confirm Swap?")
 		p
-			span(class="ui-icon ui-icon-alert")
 	div(class="left")
 		h3.title#welcome Welcome to #{title}
 		p#underTitle Make a trade by entering your information below
@@ -255,6 +254,26 @@ block content
 			document.getElementById(id3).disabled = false;
 		}
 
+		function show_dialog(message) {
+			if (message){
+				$("#dialog-confirm p").prepend(message);  
+			    $("#dialog-confirm").dialog({
+					resizable: false,
+					height: "auto",
+					modal: true,
+					buttons: {
+						"Grant": function() {
+							$( this ).dialog( "close" );
+						},
+						"Refuse": function() {
+							$( this ).dialog( "close" );
+						}
+					}
+				});
+			}
+		}
+
+		show_dialog('!{swapMessage}');
 
 
 

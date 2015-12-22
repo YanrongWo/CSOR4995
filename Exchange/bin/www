@@ -476,14 +476,28 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
       }
     }, {noAck: false});
 
+    //Process Reqs from Affirmation Platform
     var a = "Affirmation";
     ch.assertQueue(a, {durable: false});
-    ch.consume(a, function(msg) {
-      ch.ack(msg);
-      console.log(msg.content.toString());
+    ch.consume(a, function(msg2) {
+      amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
+        conn.createChannel(function(err, ch2) {
+          //Sent to Client for Req Consent
+          var reqConsentQueue = "requestConsent";
+          ch2.assertQueue(reqConsentQueue, {durable: false});
+          var priscillasReqConsentMsg = i.toString(); //Change this - Priscilla
+          console.log("Sent" + i.toString());
+          i = i + 1;
+          ch2.sendToQueue(reqConsentQueue, new Buffer(priscillasReqConsentMsg), {persistent: true});
+          ch.ack(msg2);
+          ch2.close();
+        });
+      });
      }, {noAck: false});
   });
 });
+
+var i = 1;
 
 /* Send market price of symbol 
  @param price - market price to send

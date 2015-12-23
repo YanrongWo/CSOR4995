@@ -70,13 +70,48 @@ function loadIndexWithMessage(res, message, trg)
             });
           }
           else {
-            res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
-              title: 'Trade Capturer',
-              alertScript: message,
-              traderScript: JSON.stringify(traders),
-              fills: fillStr });
-            ch.close();
-            return;
+            ch.assertQueue("clearingReply", {durable: false}, function(err, ok2){
+              if (err) throw err;
+              console.log("Message Count 2:" + ok2.messageCount);
+              if (ok2.messageCount > 0){
+                ch.consume("clearingReply", function(msg2) {
+                  var swapId = 1; //Parse out the swapID from msg2 - Priscilla
+                  var cleared = true; //Parse out if swap was cleared (true) or denied (false) - Priscilla
+                  queryString = "SELECT * from Swaps where swapId=" + swapId + ";";
+                  console.log("Rona2: " + queryString);
+                  connection.query(queryString, function(err, rows, fields) {
+                    if (err) throw err;
+                    var swapMessage2 = "Clearing Confirmed for Swap " + rows[0].swapId + "\n Trader: " + rows[0].uid + "\nStart: " + rows[0].start 
+                      + "\nEnd: " + rows[0].termination + "\nFloating Rate: " + rows[0].floatingRate + "\n\t Paid by: " + rows[0].fixedPayer + 
+                      "\nFixed Rate: " + rows[0].fixedRate + "\n\tPaid by: " + rows[0].floatPayer + "\nSpread: " + rows[0].spread;
+                    if (!cleared){
+                      swapMessage2 = "Clearing Refused for Swap " + rows[0].swapId + "\n Trader: " + rows[0].uid + "\nStart: " + rows[0].start 
+                        + "\nEnd: " + rows[0].termination + "\nFloating Rate: " + rows[0].floatingRate + "\n\t Paid by: " + rows[0].fixedPayer + 
+                        "\nFixed Rate: " + rows[0].fixedRate + "\n\tPaid by: " + rows[0].floatPayer + "\nSpread: " + rows[0].spread;
+                    }
+                    console.log(swapMessage2);
+                    res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
+                      title: 'Trade Capturer',
+                      alertScript: message,
+                      traderScript: JSON.stringify(traders),
+                      fills: fillStr,
+                      swapMessage2: swapMessage2});
+                    ch.ack(msg2);
+                    ch.close();
+                    return;
+                  });
+                });
+              }
+              else{
+                res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
+                title: 'Trade Capturer',
+                alertScript: message,
+                traderScript: JSON.stringify(traders),
+                fills: fillStr });
+                ch.close();
+                return;
+              }
+            });
           }
         });
       });

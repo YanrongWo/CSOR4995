@@ -486,10 +486,9 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
           //Sent to Client for Req Consent
           var reqConsentQueue = "requestConsent";
           ch2.assertQueue(reqConsentQueue, {durable: false});
-          //var priscillasReqConsentMsg = i.toString();
+          var priscillasReqConsentMsg = i.toString();
           //Change this to the req consent message; modify the affirmation (msg2) or 
           //just make the affirmation message the req content mesage- Priscilla
-
           msg2.replace('affirmationPlatform', 'requestConsent');
           msg2.replace('<clearedDate/>', '');
 
@@ -511,8 +510,8 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
       amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
         conn.createChannel(function(err, ch3) {
           var otherClient = Math.random();
-          var message = "";
-          console.log("here");
+          var message = "Some message";
+          console.log("Sent clearing reply.");
           if (consentGranted & otherClient > 0.5){
             //Set message to clearing confirmed message - Priscilla
           }
@@ -520,7 +519,7 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
             //Set message to clearing confirmed message - Priscilla
           }
           var clearingQueue = "clearingReply"
-          ch3.sendToQueue(clearingQueue, new Buffer(clearingQueue), {persistent: true});
+          ch3.sendToQueue(clearingQueue, new Buffer(message), {persistent: true});
           ch.ack(msg3);
           ch3.close();
         });

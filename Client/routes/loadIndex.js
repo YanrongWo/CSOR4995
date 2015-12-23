@@ -36,28 +36,21 @@ function loadIndexWithMessage(res, message, trg)
         fillStr += "<p class='msgs'>"+trg[i]+"</p><br/>";
       }
     }
-    console.log("fillStr" + fillStr);
 
+    //Check for any request consent messages in queue
     amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
       conn.createChannel(function(err, ch) {
         var q = 'requestConsent';
         ch.prefetch(1);
-        ch.assertQueue(q, {durable: false}, function(err, ok){
+        ch.assertQueue(q, {durable: true}, function(err, ok){
           if (err) throw err;
-          console.log("MessageCount:" + ok.messageCount);
           if (ok.messageCount > 0){
-            console.log("MessageCount2:" + ok.messageCount);
             ch.consume(q, function(msg) { // requestConsent message
-              console.log('this is msg: ', msg);
-              //Parse out the swapId from Message - Priscilla
-              msgContent = msg.content.toString();
-              console.log('msgContent: ',  msgContent);
+              var msgContent = msg.content.toString();
               i_swapid_start = msgContent.indexOf('client_trade_id') + 17;
               i_swapid_end = msgContent.indexOf('</tradeId>');
               swapId = msgContent.substring(i_swapid_start, i_swapid_end);
-              console.log('my swap ID is: ', swapId)
               queryString = "SELECT * from Swaps where swapId=" + swapId + ";";
-              console.log(queryString);
               connection.query(queryString, function(err, rows, fields) {
                 if (err) throw err;
                 var swapMessage = "Request Consent for Swap " + rows[0].swapId + "<br> Trader: " + rows[0].uid + "<br/>Notional Amount: " + rows[0].amount + "<br>Start: " + rows[0].start 
@@ -77,19 +70,21 @@ function loadIndexWithMessage(res, message, trg)
             });
           }
           else {
-            ch.assertQueue("clearingReply", {durable: false}, function(err, ok2){
+            //Check for any clearing confirmed/refused messages in queue
+            ch.assertQueue("clearingReply", {durable: true}, function(err, ok2){
               if (err) throw err;
-              console.log("Message Count 2:" + ok2.messageCount);
               if (ok2.messageCount > 0){
-                ch.consume("clearingReply", function(msg2) {
-                  var swapId = 1; //Parse out the swapID from msg2 - Priscilla
+                ch.consume("clearingReply", function(msg2) { //clearing refused/confirmed mesage
+                  var msgContent = msg2.content.toString();
+                  i_swapid_start = msgContent.indexOf('client_trade_id') + 17;
+                  i_swapid_end = msgContent.indexOf('</tradeId>');
+                  var swapId = msgContent.substring(i_swapid_start, i_swapid_end);
                   var cleared = true;
                   var clearing = "cleared";
                   if (msg2.content.toString().indexOf("clearingRefused") >= 0){
                     cleared = false;
                   }
                   queryString = "SELECT * from Swaps where swapId=" + swapId + ";";
-                  console.log("Rona2: " + queryString);
                   connection.query(queryString, function(err, rows, fields) {
                     if (err) throw err;
                     var swapMessage2 = "Clearing Confirmed for Swap " + rows[0].swapId + "<br/>Trader: " + rows[0].uid + "<br/>Notional Amount: " + rows[0].amount + "<br/>Start: " + rows[0].start 
@@ -102,10 +97,8 @@ function loadIndexWithMessage(res, message, trg)
                       clearing = "refused";
                     }
                     queryString = "Update Swaps where swapId=" + swapId + " set clearing='" + clearing +"';";
-                    console.log(queryString);
                     connection.query(queryString, function(err, rows, fields) {
                     });
-                    console.log(swapMessage2);
                     res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
                       title: 'Trade Capturer',
                       alertScript: message,
@@ -119,6 +112,7 @@ function loadIndexWithMessage(res, message, trg)
                 });
               }
               else{
+                //No messages, so render normally
                 res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
                 title: 'Trade Capturer',
                 alertScript: message,

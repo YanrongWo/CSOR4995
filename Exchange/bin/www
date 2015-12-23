@@ -87,7 +87,6 @@ function inverse_erf(lower_bound, upper_bound){
   var range = upper_bound - lower_bound;
   random = (random * range) + lower_bound;
   term1 = random;
-  console.log("random number generated: "+random);
   term2 = (Math.PI / 12) * Math.pow(random, 3);
   term3 = ((7 * Math.pow(Math.PI, 2)) / 480) * Math.pow(random, 5);
   term4 = ((127 * Math.pow(Math.PI, 3)) / 40320) * Math.pow(random, 7);
@@ -101,7 +100,6 @@ function inverse_erf(lower_bound, upper_bound){
 @param time - time the order should be made
 @param isBuy - if the stock is a buy or sell */
 function generateOrder(symbol, time, isBuy, isFuture){
-  console.log("isBuy: "+isBuy);
   //generate random number of lots between 1 and 1001
   var lots = Math.round((Math.random() * 1000) + 1);
   //get the value of the symbol according to its sin wave
@@ -109,8 +107,6 @@ function generateOrder(symbol, time, isBuy, isFuture){
   symbol_shift = shift[symbol_index];
   symbol_amp = amp[symbol_index];
   var mean = getMarketPrice(symbol, time);
-  console.log("mean");
-  console.log(mean);
   //Generate a random number with a normal distribution
   //Multiple by variance and shift by mean
   var price;
@@ -133,10 +129,13 @@ function generateOrder(symbol, time, isBuy, isFuture){
     price = (price * 2) + mean;
   }
   price = +(price.toFixed(2));
-  console.log([lots, price]);
   return [lots, price];
 }
 
+/*Gets the market price of a stock for a given time
+ * @param symbol- symbol of stock
+ * @param time - time to get the stock price of 
+ */ 
 function getMarketPrice(symbol, time) {
   var symbol_index = symbols.indexOf(symbol);
   var symbol_shift = shift[symbol_index];
@@ -155,7 +154,6 @@ function fillOrder(message){
   var symbol = Fix.read(message).Symbol;
   var type = Fix.read(message).OrdType;
   var lots = parseInt(Fix.read(message).OrderQty);
-  console.log('Ronas isBuy' + Fix.read(message).Side);
   var isBuy = Fix.read(message).Side == "1";
   var expiry = Fix.read(message).MaturityMonthYear;
   var myUid = Fix.read(message).OrderID;
@@ -295,6 +293,7 @@ on future offers and adds it to the database
 @param symbol - symbol of the offer being filled
 @param isBuy - if the trade was a buy or fill
 @param fills - the fills that are filling this trade
+@param expiry - when the trade expires
 */
 function addNewConstraint(symbol, isBuy, fills, expiry){
   //Look for the most extreme price at the latest date
@@ -338,12 +337,10 @@ function satisfiesConstraints(price, time, isBuy){
     constraint = constraints[constraint]
     if (time < constraint.time){
       if (isBuy && price < constraint.price){
-        console.log("breaks constraints");
         satisfies = false;
         break;
       }
       else if (!isBuy && price < constraint.price){
-        console.log("breaks constraint");
         satisfies = false;
         break;
       }
@@ -371,7 +368,6 @@ function checkForFill(symbol, price, lots, isBuy, generated_order){
       return [generated_lots, price];
     }
   }
-  console.log("breaks price");
   return null
 }
 
@@ -392,11 +388,8 @@ function getConstraints(message){
 
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    console.log("Got Constraints");
     constraints = rows;
-    console.log(constraints);
     var result = fillOrder(message);
-    console.log(result);
     return result;
   });
 }
@@ -415,7 +408,6 @@ function addConstraint(symbol, price, time, isBuy, expiry){
 
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    console.log("Added Constraints");
     removeConstraints();
   });
 }
@@ -426,7 +418,6 @@ function removeConstraints(){
   var queryString = "DELETE FROM Constraints WHERE time < " + (d.getTime() - 60000) + ";"
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
-    console.log("Removed Constraints");    
     if (recieved_trades.length > 0){
       var next_task = recieved_trades.pop();
       processTrade(next_task);
@@ -438,6 +429,7 @@ function removeConstraints(){
   }); 
 }
 
+/* Processes the futures request by creating fills*/
 function processTrade(message){
   isWorking = true;
           
@@ -454,7 +446,7 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
   conn.createChannel(function(err, ch) {
     var q = 'Exchange';
 
-    ch.assertQueue(q, {durable: false});
+    ch.assertQueue(q, {durable: true});
     console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", q);
     ch.consume(q, function(msg) {
       //Process messages
@@ -463,7 +455,6 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
       if(message.indexOf("MARKETPRICE: ") === -1) {
         channel = ch;
         ackMsg = msg;
-				console.log(Fix.read(message).OrderID);
 
 				// See if already processing
         if (!isWorking){
@@ -485,15 +476,13 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
 
     //Process Reqs from Affirmation Platform
     var a = "Affirmation";
-    ch.assertQueue(a, {durable: false});
+    ch.assertQueue(a, {durable: true});
     ch.consume(a, function(msg2) {
       amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
         conn.createChannel(function(err, ch2) {
           //Sent to Client for Req Consent
           var reqConsentQueue = "requestConsent";
-          ch2.assertQueue(reqConsentQueue, {durable: false});
-          //Change this to the req consent message; modify the affirmation (msg2) or 
-          //just make the affirmation message the req content mesage- Priscilla
+          ch2.assertQueue(reqConsentQueue, {durable: true});
 
           msg2Content = msg2.content.toString();
           msg2Content = msg2Content.replace(/affirmationPlatform/g, 'requestConsent');
@@ -501,8 +490,6 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
 
           console.log(msg2Content);
 
-          console.log("Sent" + i.toString());
-          i = i + 1;
           ch2.sendToQueue(reqConsentQueue, new Buffer(msg2Content), {persistent: true});
           ch.ack(msg2);
           ch2.close();
@@ -510,34 +497,34 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
       });
      }, {noAck: false});
 
+    //Process ConsentGranted/ConsentRefused replies from the Client
     var r = "replyConsent";
-    ch.assertQueue(r,{durable: false});
+    ch.assertQueue(r,{durable: true});
     ch.consume(r, function(msg3){
       msg3Content = msg3.content.toString()
       consentGrantedIndex = msg3Content.indexOf('consentGranted');
-      var consentGranted = false; //Parse this from message (if consent was granted then true, else false) - Priscilla
+      var consentGranted = false; 
       if (consentGrantedIndex >= 0) {
         consentGranted = true;
       }
       amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
         conn.createChannel(function(err, ch3) {
+          //Generate random ConsentGranted/ConsentRefused for other Client
           var otherClient = Math.random();
           var message = "";
-          console.log("Sent clearing reply.");
           swapId = msg3Content.substring(msg3Content.indexOf('message_id') + 12, msg3Content.indexOf('</messageId>'));
-          console.log('my swap Id is: ', swapId);
+          //Construct the Clearing Refused/Confirmed messages
           var queryString = "Select * FROM Swaps where swapId=" + swapId + ";";
-          console.log('queryString is: ', queryString);
           connection.query(queryString, function(err, rows, fields) {
             if (err) throw err;
-            var utcdate = rows[0].transactionTime
-            var startdate = rows[0].start
+            var utcdate = rows[0].transactionTime;
+            var startdate = rows[0].start.toString();
             var terminationdate = rows[0].termination;
             var floating = rows[0].floatingRate;
             var spread = rows[0].spread;
             var fixed = rows[0].fixedRate;
             var traderID = rows[0].uid;
-            // var initialValue = rows[0].initialValue; 
+            var initialValue = rows[0].amount; 
 
             if (consentGranted & otherClient > 0.5){
               var builder = require('xmlbuilder');
@@ -651,7 +638,7 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
                   .ele('notionalSchedule')
                     .ele('notionalStepSchedule')
                       .ele('initialValue')
-                      //.ele('initialValue', initialValue)
+                        .ele('initialValue', initialValue)
                       .insertAfter('currency', 'USD')
                     .up()
                   .up()
@@ -783,7 +770,7 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
                   .ele('notionalSchedule')
                     .ele('notionalStepSchedule')
                       .ele('initialValue')
-                      //.ele('initialValue', initialValue)
+                        .ele('initialValue', initialValue)
                       .insertAfter('currency', 'USD')
                     .up()
                   .up()
@@ -812,8 +799,6 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
     });
   });
 });
-
-var i = 1;
 
 /* Send market price of symbol 
  @param price - market price to send

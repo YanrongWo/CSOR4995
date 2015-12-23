@@ -27,6 +27,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', routes);
 app.use('/users', users);
 
+//Database connection
 var connection = mysql.createConnection(
   {
     host     : '104.131.22.150',
@@ -38,9 +39,12 @@ var connection = mysql.createConnection(
 
 connection.connect();
 
+/* Response to the requestConsent Exchange message
+ * @triggered - when the user clicks, Granted/Refused and the page redirects to /replyConsent
+ */
 app.post('/replyConsent', function(req,res) {
+  //Get swap info
   var message = '';
-  console.log("Rona is here");
   var queryString = "Select * FROM Swaps where swapId=" + req.body.swapId + ";";
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
@@ -53,11 +57,10 @@ app.post('/replyConsent', function(req,res) {
     var traderID = rows[0].uid;
     var whopaysfixed = rows[0].fixedPayer;
     var whopaysfloat = rows[0].floatPayer;
-    // get initialValue of the swap
-    //var initialValue = rows[0].initialValue;
+    var initialValue = rows[0].amount;
     var swapId = req.body.swapId;
+    //Construct consentGranted
     if (req.body.reply == "granted"){
-      //message = "granted";
       if (err) throw err;
       var builder = require('xmlbuilder');
       var consentGranted = builder.create('consentGranted')
@@ -76,9 +79,8 @@ app.post('/replyConsent', function(req,res) {
       .end({ pretty: true});
       message = party; 
     }
+    //Construct consentRefused message
     else{
-      //message = "denied";
-      //Priscilla - FIll in consentdenied in for message
       if (err) throw err;
       var builder = require('xmlbuilder');
       var consentRefused = builder.create('consentRefused')
@@ -99,13 +101,13 @@ app.post('/replyConsent', function(req,res) {
       message = party;
 
     }
-    console.log(message);
+    //Sent message over Mom
     amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
       conn.createChannel(function(err, ch) {
         if (err) throw err;
-        console.log("inside" + message);
         var q = 'replyConsent';
-        ch.assertQueue(q, {durable: false});
+        ch.assertQueue(q, {durable: true});
+        console.log(message);
         ch.sendToQueue(q, new Buffer(message), {persistent: true});
         res.send("");
       });
@@ -113,6 +115,7 @@ app.post('/replyConsent', function(req,res) {
   });
   return;
 });
+
 //@Summary: Inserts value from form on interest Rate Swap page into database
 //@Triggered: POST request sent from domain/interestRateSwap
 app.post('/interestRateSwap', function (req, res) {
@@ -139,6 +142,7 @@ app.post('/interestRateSwap', function (req, res) {
     + "','" + floating + "','" + spread + "','" + fixed + "','" + whopaysfixed + "','" 
     + whopaysfloat + "','" + traderID + "','" + utcdatetime + "','" + status + "', NULL, 'in progress'," + notionalAmount + ");";
 
+  //Act as affirmation platform sending the message to the Exchange
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;
     queryString = "SELECT LAST_INSERT_ID();"
@@ -211,7 +215,7 @@ app.post('/interestRateSwap', function (req, res) {
           .ele('notionalSchedule')
             .ele('notionalStepSchedule')
               .ele('initialValue')
-              //.ele('initialValue', initialValue)
+                .ele('initialValue', notionalAmount)
               .insertAfter('currency', 'USD')
             .up()
           .up()
@@ -271,8 +275,6 @@ app.post('/interestRateSwap', function (req, res) {
       var clearing_service = clearing_firm.root().ele('party', {'id':'clearing_service'})
         .ele('partyId', 'testexchange')
       .end({ pretty: true});
-      console.log(clearing_service);
-      console.log('Index of trade', clearing_service.indexOf('<trade>'))
       amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
         if (err)
         {
@@ -284,13 +286,12 @@ app.post('/interestRateSwap', function (req, res) {
           });
         }
         conn.createChannel(function(err, ch) {
-          if (err)
-            console.log(err);
+          if (err) throw err;
           var q = 'Affirmation';
           var msg =  clearing_service;
-          ch.assertQueue(q, {durable: false});
+          console.log(msg);
+          ch.assertQueue(q, {durable: true});
           ch.sendToQueue(q, new Buffer(msg), {persistent: true});
-          console.log('Sent to Exchange');
           loadIndex.loadIndexWithMessage(res, 'Interest Rate Swap Captured!', "");
           setTimeout(function() { conn.close(); }, 500);
         });
@@ -361,31 +362,30 @@ app.get('/CSVTrades', function (req, res) {
   });
 });
 
-    
-
-
+/* Get the market price of the given symbol 
+ * @param symbol - symbol of the stock to get
+ */
 function getMarketPrice(symbol) {
   amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
   conn.createChannel(function(err, ch) {
-    if (err)
-      console.log(err);
+    if (err) throw err;
     var q = 'Exchange';
     var msg = "MARKETPRICE: "+symbol;
-    ch.assertQueue(q, {durable: false});
+    ch.assertQueue(q, {durable: true});
     receiveMarketPrice(symbol);
     ch.sendToQueue(q, new Buffer(msg), {persistent: true});
-    console.log("Exchange market data request: " + symbol);
   });
   setTimeout(function() { conn.close(); }, 500);
   });
 }
 
+/* Process the market price recieved from Exchange
+ * @param symbol - symbol of the stock with the given market price */
 function receiveMarketPrice(symbol) {
   var messages = ""
   amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
   conn.createChannel(function(err, ch) {
-    if (err)
-      console.log(err);
+    if (err) throw err;
     var ex = 'MarketPrice';
 
     ch.assertExchange(ex, 'topic', {durable: true});
@@ -395,13 +395,9 @@ function receiveMarketPrice(symbol) {
 
       ch.consume(q.queue, function(msg) {
         msg = msg.content.toString();
-        console.log(symbol + " market Price received: "+msg);
         
         //send msg price to PnL calculation
         marketprices[symbol] = parseInt(msg);
-
-        //send msg to daily trades
-
 
       }, {noAck: true});
     });
@@ -409,6 +405,9 @@ function receiveMarketPrice(symbol) {
   });
 }
 
+/* Change the date to have the mm/dd/yyyy format 
+ * @param date - original date to change
+ */
 function getDate(date) {
 	var dd = date.getDate();
 	var mm = date.getMonth()+1;
@@ -474,6 +473,7 @@ app.get('/CSVDailyTrades', function (req, res) {
 });
 
 var marketprices = {};
+
 //@Summary: Write PnL By Trades to CSV File
 //@Triggered: GET request sent to domain/CSVPL
 app.get('/CSVPL', function (req, res) {
@@ -529,7 +529,6 @@ function generateCSVPL(pltype, res, trades) {
 			}
 			if(fillnum > 0) {
 				if(trade["side"] === "Sell") {
-					console.log("yoyo"+total);
 					tradesprofit[trade["uid"]] = total;
 					profit += total;
 				}
@@ -574,7 +573,6 @@ function generateCSVPL(pltype, res, trades) {
 			for(var row in tradersprofit) {
 				toSend += row+","+tradersprofit[row]+"\n";
 			}
-			console.log(tradesprofit);
 			res.send(toSend);
 		}
 		if(pltype === "product") {
@@ -646,7 +644,6 @@ app.get('/CSVAggregate', function (req, res) {
 					}
 				}
 			}
-			console.log(tradesvalue);
 
 			//by product
 			var productvalue = {};
@@ -822,6 +819,9 @@ app.get('/CSVPLSwaps', function (req, res) {
   //TODO
 });
 
+/* Update the EOD to the next date 
+ * @triggered - GET request to /EOD 
+ */
 app.get('/Eod', function(req, res){
   queryString = "Select * from EOD;";
   connection.query(queryString, function(err, rows, fields) {
@@ -829,6 +829,7 @@ app.get('/Eod', function(req, res){
     var eod = rows[0].eod;
     var daystoAdd = 1;
 
+    //Calculate the next EOD skipping holidays/weekends
     daystoAdd = updateDaysPastWeekend(daystoAdd, eod, 1);
     var tomorrow = eod.addDays(daystoAdd);
     var day = tomorrow.getDate();
@@ -875,6 +876,7 @@ app.get('/Eod', function(req, res){
   });
 });
 
+/* Update maturing swaps to matured*/
 function updateMaturingSwaps(eod){
   var month = eod.getMonth() + 1;
   var year = eod.getFullYear();
@@ -898,6 +900,7 @@ function updateMaturingSwaps(eod){
   });
 }
 
+/* Update maturing futures to matured*/
 function updateMaturingTrades(eod){
   var month = eod.getMonth();
   var year = eod.getFullYear();
@@ -919,6 +922,7 @@ function updateMaturingTrades(eod){
         buffer += chunk;
     }); 
 
+    //Calculate the 3 days from end of month
     response.on("end", function (err) {
       data = JSON.parse(buffer);
       holidays = data.holidays;
@@ -1030,6 +1034,11 @@ function updateMaturingTrades(eod){
   });
 }
 
+/*Update daystoAdd to past the weekend
+ * @param daysToAdd - days to add to the original date to desired date
+ * @param currentTime - current date 
+ * @param numDays - number of days to skip at a time 
+ */
 function updateDaysPastWeekend(daystoAdd, currentTime, numDays){
   var isWeekend = true;
   while (isWeekend){
@@ -1047,6 +1056,7 @@ function updateDaysPastWeekend(daystoAdd, currentTime, numDays){
   return daystoAdd;
 }
 
+/* Adds days together*/
 Date.prototype.addDays = function(days)
 {
     var dat = new Date(this.valueOf());
@@ -1054,6 +1064,8 @@ Date.prototype.addDays = function(days)
     return dat;
 }
 
+/* Returns CSV of trades maturing today 
+ * @triggered - GET request to /CSVMaturing */
 app.get('/CSVMaturing', function (req, res) {
   var queryString = 'SELECT * FROM Trades where status="maturing"';
    

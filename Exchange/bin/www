@@ -486,7 +486,6 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
           //Sent to Client for Req Consent
           var reqConsentQueue = "requestConsent";
           ch2.assertQueue(reqConsentQueue, {durable: false});
-          var priscillasReqConsentMsg = i.toString();
           //Change this to the req consent message; modify the affirmation (msg2) or 
           //just make the affirmation message the req content mesage- Priscilla
 
@@ -498,7 +497,7 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
 
           console.log("Sent" + i.toString());
           i = i + 1;
-          ch2.sendToQueue(reqConsentQueue, new Buffer(priscillasReqConsentMsg), {persistent: true});
+          ch2.sendToQueue(reqConsentQueue, new Buffer(msg2Content), {persistent: true});
           ch.ack(msg2);
           ch2.close();
         });
@@ -518,7 +517,8 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
             //Set message to clearing confirmed message - Priscilla
           }
           else {
-            //Set message to clearing confirmed message - Priscilla
+            //Set message to clearing refused message - Priscilla
+
           }
           var clearingQueue = "clearingReply"
           ch3.sendToQueue(clearingQueue, new Buffer(message), {persistent: true});

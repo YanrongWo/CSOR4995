@@ -47,7 +47,7 @@ function loadIndexWithMessage(res, message, trg)
           console.log("MessageCount:" + ok.messageCount);
           if (ok.messageCount > 0){
             console.log("MessageCount2:" + ok.messageCount);
-            ch.consume(q, function(msg) {
+            ch.consume(q, function(msg) { // requestConsent message
               var swapId = msg.content.toString(); //Parse out the swapId from Message - Priscilla
               queryString = "SELECT * from Swaps where swapId=" + swapId + ";";
               console.log(queryString);

@@ -273,6 +273,7 @@ app.post('/interestRateSwap', function (req, res) {
         .ele('partyId', 'testexchange')
       .end({ pretty: true});
       console.log(clearing_service);
+      console.log('Index of trade', clearing_service.indexOf('<trade>'))
       amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
         if (err)
         {

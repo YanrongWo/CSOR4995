@@ -1,35 +1,33 @@
 0 info it worked if it ends with ok
-1 verbose cli [ 'C:\\Program Files (x86)\\nodejs\\node.exe',
-1 verbose cli   'C:\\Users\\Rona\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npm-cli.js',
-1 verbose cli   'start' ]
-2 info using npm@3.4.0
-3 info using node@v5.0.0
+1 verbose cli [ '/usr/local/bin/node', '/usr/local/bin/npm', 'start' ]
+2 info using npm@3.3.12
+3 info using node@v5.3.0
 4 verbose run-script [ 'prestart', 'start', 'poststart' ]
 5 info lifecycle Exchange@0.0.0~prestart: Exchange@0.0.0
 6 silly lifecycle Exchange@0.0.0~prestart: no script for prestart, continuing
 7 info lifecycle Exchange@0.0.0~start: Exchange@0.0.0
 8 verbose lifecycle Exchange@0.0.0~start: unsafe-perm in lifecycle true
-9 verbose lifecycle Exchange@0.0.0~start: PATH: C:\Users\Rona\AppData\Roaming\npm\node_modules\npm\bin\node-gyp-bin;C:\Program Files\nodejs\CSOR4995\Exchange\node_modules\.bin;C:\ProgramData\Oracle\Java\javapath;C:\Program Files\nodejs\;C:\Program Files\typesafe-activator\activator-dist-1.3.5;C:\Windows\System32;C:\Program Files\Java\jdk1.7.0_11\bin;C:\Program Files\PostgreSQL\9.5\bin;C:\Program Files (x86)\Skype\Phone\;C:\Program Files (x86);C:\Program Files (x86)\nodejs\;C:\Program Files\Java\jdk1.7.0_11\bin;C:\Users\Rona\AppData\Local\Enthought\Canopy\User;C:\Users\Rona\AppData\Local\Enthought\Canopy\User\Scripts;C:\Users\Rona\AppData\Roaming\npm
-10 verbose lifecycle Exchange@0.0.0~start: CWD: C:\Program Files\nodejs\CSOR4995\Exchange
-11 silly lifecycle Exchange@0.0.0~start: Args: [ '/d /s /c', 'node ./bin/www' ]
+9 verbose lifecycle Exchange@0.0.0~start: PATH: /usr/local/lib/node_modules/npm/bin/node-gyp-bin:/Users/priscillawang/GitHub/CSOR4995/Exchange/node_modules/.bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin
+10 verbose lifecycle Exchange@0.0.0~start: CWD: /Users/priscillawang/GitHub/CSOR4995/Exchange
+11 silly lifecycle Exchange@0.0.0~start: Args: [ '-c', 'node ./bin/www' ]
 12 silly lifecycle Exchange@0.0.0~start: Returned: code: 1  signal: null
 13 info lifecycle Exchange@0.0.0~start: Failed to exec start script
 14 verbose stack Error: Exchange@0.0.0 start: `node ./bin/www`
 14 verbose stack Exit status 1
-14 verbose stack     at EventEmitter.<anonymous> (C:\Users\Rona\AppData\Roaming\npm\node_modules\npm\lib\utils\lifecycle.js:232:16)
+14 verbose stack     at EventEmitter.<anonymous> (/usr/local/lib/node_modules/npm/lib/utils/lifecycle.js:232:16)
 14 verbose stack     at emitTwo (events.js:87:13)
 14 verbose stack     at EventEmitter.emit (events.js:172:7)
-14 verbose stack     at ChildProcess.<anonymous> (C:\Users\Rona\AppData\Roaming\npm\node_modules\npm\lib\utils\spawn.js:24:14)
+14 verbose stack     at ChildProcess.<anonymous> (/usr/local/lib/node_modules/npm/lib/utils/spawn.js:24:14)
 14 verbose stack     at emitTwo (events.js:87:13)
 14 verbose stack     at ChildProcess.emit (events.js:172:7)
 14 verbose stack     at maybeClose (internal/child_process.js:818:16)
 14 verbose stack     at Process.ChildProcess._handle.onexit (internal/child_process.js:211:5)
 15 verbose pkgid Exchange@0.0.0
-16 verbose cwd C:\Program Files\nodejs\CSOR4995\Exchange
-17 error Windows_NT 6.1.7601
-18 error argv "C:\\Program Files (x86)\\nodejs\\node.exe" "C:\\Users\\Rona\\AppData\\Roaming\\npm\\node_modules\\npm\\bin\\npm-cli.js" "start"
-19 error node v5.0.0
-20 error npm  v3.4.0
+16 verbose cwd /Users/priscillawang/GitHub/CSOR4995/Exchange
+17 error Darwin 14.5.0
+18 error argv "/usr/local/bin/node" "/usr/local/bin/npm" "start"
+19 error node v5.3.0
+20 error npm  v3.3.12
 21 error code ELIFECYCLE
 22 error Exchange@0.0.0 start: `node ./bin/www`
 22 error Exit status 1

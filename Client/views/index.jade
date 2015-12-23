@@ -89,6 +89,9 @@ block content
 					label Termination Date
 					input(type="date", name="terminationDate", class="form-control")
 				div(class="form-group")
+					label Notional Amount 
+					input(type="text", name="notionalAmount", class="form-control")
+				div(class="form-group")
 					label Floating Rate (%)
 					input(type="text", name="floatingRate", class="form-control")
 				div(class="form-group")
@@ -201,11 +204,11 @@ block content
 		function sendAlert(msg){
 			if (msg)
 			{
-				alert(msg);
+				alert(msg.replace(/\<br\/\>/g, "\n"));
 			}
 		}
 		sendAlert("#{alertScript}");
-		sendAlert("#{swapMessage2}");
+		sendAlert("!{swapMessage2}");
 
 		function populateTraders(traders)
 		{

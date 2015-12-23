@@ -60,7 +60,7 @@ function loadIndexWithMessage(res, message, trg)
               console.log(queryString);
               connection.query(queryString, function(err, rows, fields) {
                 if (err) throw err;
-                var swapMessage = "Request Consent for Swap " + rows[0].swapId + "<br> Trader: " + rows[0].uid + "<br>Start: " + rows[0].start 
+                var swapMessage = "Request Consent for Swap " + rows[0].swapId + "<br> Trader: " + rows[0].uid + "<br/>Notional Amount: " + rows[0].amount + "<br>Start: " + rows[0].start 
                   + "<br>End: " + rows[0].termination + "<br>Floating Rate: " + rows[0].floatingRate + "<br>\t Paid by: " + rows[0].fixedPayer + 
                   "<br>Fixed Rate: " + rows[0].fixedRate + "<br>\tPaid by: " + rows[0].floatPayer + "<br>Spread: " + rows[0].spread;
                 res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
@@ -84,6 +84,7 @@ function loadIndexWithMessage(res, message, trg)
                 ch.consume("clearingReply", function(msg2) {
                   var swapId = 1; //Parse out the swapID from msg2 - Priscilla
                   var cleared = true;
+                  var clearing = "cleared";
                   if (msg2.content.toString().indexOf("clearingRefused") >= 0){
                     cleared = false;
                   }
@@ -91,14 +92,19 @@ function loadIndexWithMessage(res, message, trg)
                   console.log("Rona2: " + queryString);
                   connection.query(queryString, function(err, rows, fields) {
                     if (err) throw err;
-                    var swapMessage2 = "Clearing Confirmed for Swap " + rows[0].swapId + "\n Trader: " + rows[0].uid + "\nStart: " + rows[0].start 
-                      + "\nEnd: " + rows[0].termination + "\nFloating Rate: " + rows[0].floatingRate + "\n\t Paid by: " + rows[0].fixedPayer + 
-                      "\nFixed Rate: " + rows[0].fixedRate + "\n\tPaid by: " + rows[0].floatPayer + "\nSpread: " + rows[0].spread;
+                    var swapMessage2 = "Clearing Confirmed for Swap " + rows[0].swapId + "<br/>Trader: " + rows[0].uid + "<br/>Notional Amount: " + rows[0].amount + "<br/>Start: " + rows[0].start 
+                      + "<br/>End: " + rows[0].termination + "<br/>Floating Rate: " + rows[0].floatingRate + "<br/>\t     Paid by: " + rows[0].fixedPayer + 
+                      "<br/>Fixed Rate: " + rows[0].fixedRate + "<br/>\t    Paid by: " + rows[0].floatPayer + "<br/>Spread: " + rows[0].spread;
                     if (!cleared){
-                      swapMessage2 = "Clearing Refused for Swap " + rows[0].swapId + "\n Trader: " + rows[0].uid + "\nStart: " + rows[0].start 
-                        + "\nEnd: " + rows[0].termination + "\nFloating Rate: " + rows[0].floatingRate + "\n\t Paid by: " + rows[0].fixedPayer + 
-                        "\nFixed Rate: " + rows[0].fixedRate + "\n\tPaid by: " + rows[0].floatPayer + "\nSpread: " + rows[0].spread;
+                      swapMessage2 = "Clearing Refused for Swap " + rows[0].swapId + "<br/>Trader: " + rows[0].uid + "<br/>Notional Amount: " + rows[0].amount +"<br/>Start: " + rows[0].start 
+                        + "<br/>End: " + rows[0].termination + "<br/>Floating Rate: " + rows[0].floatingRate + "<br/>\t    Paid by: " + rows[0].fixedPayer + 
+                        "<br/>Fixed Rate: " + rows[0].fixedRate + "<br/>\t    Paid by: " + rows[0].floatPayer + "<br/>Spread: " + rows[0].spread;
+                      clearing = "refused";
                     }
+                    queryString = "Update Swaps where swapId=" + swapId + " set clearing='" + clearing +"';";
+                    console.log(queryString);
+                    connection.query(queryString, function(err, rows, fields) {
+                    });
                     console.log(swapMessage2);
                     res.render('index', { cssLink: "<link rel='stylesheet' href='/stylesheets/index.css'/>",
                       title: 'Trade Capturer',

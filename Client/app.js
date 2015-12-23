@@ -128,7 +128,7 @@ app.post('/interestRateSwap', function (req, res) {
   var whopaysfixed = req.body.whoPaysFixed;
   var whopaysfloat = req.body.whoPaysFloat;
   var status = 'ongoing';
-
+  var notionalAmount = req.body.notionalAmount;
   //Check if form is completely filled
   if (!startdate || !terminationdate || !floating ||  !spread || !fixed || !whopaysfixed || !whopaysfloat){
     loadIndex.loadIndexWithMessage(res, 'All values must be filled in.', "")
@@ -137,7 +137,7 @@ app.post('/interestRateSwap', function (req, res) {
 
   var queryString = "INSERT INTO Swaps VALUES ('" + startdate + "','" +  terminationdate 
     + "','" + floating + "','" + spread + "','" + fixed + "','" + whopaysfixed + "','" 
-    + whopaysfloat + "','" + traderID + "','" + utcdatetime + "','" + status + "', NULL);";
+    + whopaysfloat + "','" + traderID + "','" + utcdatetime + "','" + status + "', NULL, 'in progress'," + notionalAmount + ");";
 
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;

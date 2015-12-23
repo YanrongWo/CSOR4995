@@ -53,10 +53,10 @@ app.post('/replyConsent', function(req,res) {
     var traderID = rows[0].uid;
     var whopaysfixed = rows[0].fixedPayer;
     var whopaysfloat = rows[0].floatPayer;
+    var swapId = req.body.swapId;
     if (req.body.reply == "granted"){
       message = "granted";
       if (err) throw err;
-      swapId = rows[0]['LAST_INSERT_ID()'];
       var builder = require('xmlbuilder');
       var consentGranted = builder.create('consentGranted')
 
@@ -78,7 +78,6 @@ app.post('/replyConsent', function(req,res) {
       message = "denied";
       //Priscilla - FIll in consentdenied in for message
       if (err) throw err;
-      swapId = rows[0]['LAST_INSERT_ID()'];
       var builder = require('xmlbuilder');
       var consentRefused = builder.create('consentRefused')
 

@@ -430,6 +430,7 @@ function removeConstraints(){
     if (recieved_trades.length > 0){
       var next_task = recieved_trades.pop();
       processTrade(next_task);
+      channel.ack(ackMsg);
     }
     else{
       isWorking = false;
@@ -443,6 +444,9 @@ function processTrade(message){
   getConstraints(message);
 }
 
+var channel;
+var ackMsg;
+
 //Set up listening on MoM
 var recieved_trades = []
 var isWorking = false;
@@ -454,10 +458,11 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
     console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", q);
     ch.consume(q, function(msg) {
       //Process messages
-      ch.ack(msg);
       var message = String(msg.content.toString());
       console.log(" [x] Received %s", message);
       if(message.indexOf("MARKETPRICE: ") === -1) {
+        channel = ch;
+        ackMsg = msg;
 				console.log(Fix.read(message).OrderID);
 
 				// See if already processing
@@ -473,7 +478,8 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
         //market price request
         var symbol = message.substring(13);
         var price = getMarketPrice(symbol, d.getTime());
-        setTimeout(function() {sendMarketPrice(price, symbol)}, 500);;
+        setTimeout(function() {sendMarketPrice(price, symbol)}, 500);
+        ch.ack(msg);
       }
     }, {noAck: false});
 

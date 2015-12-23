@@ -48,7 +48,11 @@ function loadIndexWithMessage(res, message, trg)
           if (ok.messageCount > 0){
             console.log("MessageCount2:" + ok.messageCount);
             ch.consume(q, function(msg) { // requestConsent message
-              var swapId = msg.content.toString(); //Parse out the swapId from Message - Priscilla
+              //Parse out the swapId from Message - Priscilla
+              msgContent = msg.content.toString();
+              i_swapid_start = msgContent.indexOf('client_trade_id') + 17;
+              i_swapid_end = msgContent.indexOf('</tradeId>');
+              swapId = msgContent.substring(i_swapid_start, i_swapid_end);
               queryString = "SELECT * from Swaps where swapId=" + swapId + ";";
               console.log(queryString);
               connection.query(queryString, function(err, rows, fields) {

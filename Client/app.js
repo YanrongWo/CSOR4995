@@ -55,7 +55,7 @@ app.post('/replyConsent', function(req,res) {
     var whopaysfloat = rows[0].floatPayer;
     var swapId = req.body.swapId;
     if (req.body.reply == "granted"){
-      message = "granted";
+      //message = "granted";
       if (err) throw err;
       var builder = require('xmlbuilder');
       var consentGranted = builder.create('consentGranted')
@@ -72,10 +72,10 @@ app.post('/replyConsent', function(req,res) {
       var party = correlationIdScheme.insertAfter('party', {'id': 'clearing_firm'})
         .ele('partyId', {'partyIdScheme':'trader_id'}, traderID)
       .end({ pretty: true});
-      console.log(party);
+      message = party; 
     }
     else{
-      message = "denied";
+      //message = "denied";
       //Priscilla - FIll in consentdenied in for message
       if (err) throw err;
       var builder = require('xmlbuilder');
@@ -94,7 +94,7 @@ app.post('/replyConsent', function(req,res) {
       var party = sequenceNumber.insertAfter('party', {'id': 'clearing_firm'})
         .ele('partyId', {'partyIdScheme':'trader_id'}, traderID)
       .end({ pretty: true});
-      console.log(party);
+      message = party;
 
     }
     console.log(message);

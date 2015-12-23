@@ -41,9 +41,6 @@ connection.connect();
 app.post('/replyConsent', function(req,res) {
   var message = '';
   console.log("Rona is here");
-  console.log(req.body);
-  console.log(req.body.swapId);
-  console.log(req.body.reply);
   var queryString = "Select * FROM Swaps where swapId=" + req.body.swapId + ";";
   connection.query(queryString, function(err, rows, fields) {
     if (err) throw err;

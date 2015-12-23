@@ -491,8 +491,8 @@ amqp.connect('amqp://test:test@104.131.22.150/', function(err, conn) {
           //just make the affirmation message the req content mesage- Priscilla
 
           msg2.replace('affirmationPlatform', 'requestConsent');
-          msg2.replace('<clearedDate/>'), '');
-        
+          msg2.replace('<clearedDate/>', '');
+
           console.log(msg2);
 
           console.log("Sent" + i.toString());

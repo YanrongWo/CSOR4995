@@ -76,7 +76,10 @@ function loadIndexWithMessage(res, message, trg)
               if (ok2.messageCount > 0){
                 ch.consume("clearingReply", function(msg2) {
                   var swapId = 1; //Parse out the swapID from msg2 - Priscilla
-                  var cleared = true; //Parse out if swap was cleared (true) or denied (false) - Priscilla
+                  var cleared = true;
+                  if (msg2.content.toString().indexOf("clearingRefused") >= 0){
+                    cleared = false;
+                  }
                   queryString = "SELECT * from Swaps where swapId=" + swapId + ";";
                   console.log("Rona2: " + queryString);
                   connection.query(queryString, function(err, rows, fields) {

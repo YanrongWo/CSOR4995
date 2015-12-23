@@ -53,6 +53,8 @@ app.post('/replyConsent', function(req,res) {
     var traderID = rows[0].uid;
     var whopaysfixed = rows[0].fixedPayer;
     var whopaysfloat = rows[0].floatPayer;
+    // get initialValue of the swap
+    //var initialValue = rows[0].initialValue;
     var swapId = req.body.swapId;
     if (req.body.reply == "granted"){
       //message = "granted";
@@ -209,6 +211,7 @@ app.post('/interestRateSwap', function (req, res) {
           .ele('notionalSchedule')
             .ele('notionalStepSchedule')
               .ele('initialValue')
+              //.ele('initialValue', initialValue)
               .insertAfter('currency', 'USD')
             .up()
           .up()
